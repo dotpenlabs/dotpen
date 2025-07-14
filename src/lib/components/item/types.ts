@@ -4,4 +4,5 @@ export type LinkItem = {
 	url: string;
 	cover: string;
 	date: string;
+	id?: string;
 };

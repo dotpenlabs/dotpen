@@ -112,10 +112,10 @@
 </script>
 
 <svelte:head>
-	<title>Cognitum - Capture links, notes, and ideas</title>
+	<title>Dotpen - Capture links, notes, and ideas</title>
 	<meta
 		name="description"
-		content="Cognitum is een snelle en eenvoudige manier om ideeën, bladwijzers en meer op te slaan!"
+		content="Dotpen is een snelle en eenvoudige manier om ideeën, bladwijzers en meer op te slaan!"
 	/>
 </svelte:head>
 
@@ -135,25 +135,13 @@
 			</a>
 
 			<div class="flex items-center gap-4">
-				{#if data.user}
-					<div
-						class="flex items-center gap-3 bg-stone-200/40 dark:bg-stone-800/40 px-3 py-2 rounded-xl hover:bg-stone-200/60 dark:hover:bg-stone-800/60 transition-all"
-						in:flyAndScale={{ y: 20, duration: 500 }}
-					>
-						<UserCircle class="size-5" />
-						<span class="text-sm md:text-base font-medium">
-							{data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User'}
-						</span>
-					</div>
-				{:else}
-					<a
-						href="/auth?intent=login"
-						class="flex items-center gap-2 bg-stone-200/40 dark:bg-stone-800/40 hover:bg-stone-200/60 dark:hover:bg-stone-800/60 px-3 py-2 rounded-xl text-sm md:text-base transition-all"
-					>
-						<UserCircle class="size-5" />
-						<span>Login</span>
-					</a>
-				{/if}
+				<a
+					href="/auth?intent=login"
+					class="flex items-center gap-2 bg-stone-200/40 dark:bg-stone-800/40 hover:bg-stone-200/60 dark:hover:bg-stone-800/60 px-3 py-2 rounded-xl text-sm md:text-base transition-all"
+				>
+					<UserCircle class="size-5" />
+					<span>Login</span>
+				</a>
 				<button
 					class="flex justify-center items-center cursor-pointer size-10 hover:scale-110 active:scale-90 transition-all duration-300"
 					onclick={() => {
@@ -196,32 +184,23 @@
 						with intuitive tools to work smarter.
 					</p>
 					<div class="flex gap-4 mt-4 w-full justify-center">
-						{#if !data.user}
-							<button
-								onclick={() => {
-									const email = prompt('Enter your email for the waitlist');
-									if (email) {
-										toast.success('Successfully added to the waitlist!', {
-											description: `Thank you, ${email.split('@')[0][0].toUpperCase() + email.split('@')[0].slice(1)}! You have been successfully added to our waitlist.`
-										});
-									} else {
-										toast.error('Email entry was cancelled or invalid.');
-									}
-								}}
-								in:flyAndScale={{ y: 20, duration: 500, delay: 150 }}
-								class="bg-zinc-900 cursor-pointer active:scale-98 dark:bg-zinc-100 text-white dark:text-zinc-900 py-3 px-6 rounded-xl font-medium text-sm md:text-base inline-flex items-center justify-center hover:opacity-90 transition-all"
-							>
-								Join waitlist <ArrowRight class="size-4 ml-2" weight="bold" />
-							</button>
-						{:else}
-							<a
-								href={data.user ? '/app' : '/auth?intent=signup'}
-								in:flyAndScale={{ y: 20, duration: 500, delay: 150 }}
-								class="bg-zinc-900 active:scale-98 dark:bg-zinc-100 text-white dark:text-zinc-900 py-3 px-6 rounded-xl font-medium text-sm md:text-base inline-flex items-center justify-center hover:opacity-90 transition-all"
-							>
-								Continue to app <ArrowRight class="size-4 ml-2" weight="bold" />
-							</a>
-						{/if}
+						<button
+							onclick={() => {
+								const email = prompt('Enter your email for the waitlist');
+								if (email) {
+									toast.success('Successfully added to the waitlist!', {
+										description: `Thank you, ${email.split('@')[0][0].toUpperCase() + email.split('@')[0].slice(1)}! You have been successfully added to our waitlist.`
+									});
+								} else {
+									toast.error('Email entry was cancelled or invalid.');
+								}
+							}}
+							in:flyAndScale={{ y: 20, duration: 500, delay: 150 }}
+							class="bg-zinc-900 cursor-pointer active:scale-98 dark:bg-zinc-100 text-white dark:text-zinc-900 py-3 px-6 rounded-xl font-medium text-sm md:text-base inline-flex items-center justify-center hover:opacity-90 transition-all"
+						>
+							Join waitlist <ArrowRight class="size-4 ml-2" weight="bold" />
+						</button>
+
 						<a
 							href="#features"
 							onclick={() => scrollToSection('features')}
@@ -373,7 +352,7 @@
 					class="border-t border-stone-200 dark:border-stone-700 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center"
 				>
 					<p class="text-xs text-stone-500 dark:text-stone-400">
-						&copy; {new Date().getFullYear()} Cognitum. All rights reserved.
+						&copy; {new Date().getFullYear()} Dotpen. All rights reserved.
 					</p>
 					<div class="flex gap-4 mt-4 md:mt-0">
 						<a
