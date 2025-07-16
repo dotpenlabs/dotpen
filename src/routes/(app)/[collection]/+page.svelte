@@ -177,7 +177,10 @@
 					: "We couldn't get the title of the link. It can be harder to find it back.",
 				action: {
 					label: 'Remove',
-					onClick: () => removeBookmark(bookmark)
+					onClick: async () => {
+						await pb.collection('bookmarks').delete(bookmark.id);
+						await fetchBookmarks();
+					}
 				}
 			});
 		};
@@ -253,12 +256,16 @@
 			if (faviconFile) formData.favicon = faviconFile;
 			if (coverFile) formData.cover = coverFile;
 
-			await pb.collection('bookmarks').create(formData);
+			const bookmark = await pb.collection('bookmarks').create(formData);
 			await fetchBookmarks();
 			await tick();
 			masonry?.recalculate(true);
 
-			showSuccessToast(newBookmark, startTime);
+			if (!Boolean(newBookmark.label && newBookmark.label !== newBookmark.url)) {
+				showWarningToast(bookmark as unknown as LinkItem);
+			} else {
+				showSuccessToast(bookmark as unknown as LinkItem, startTime);
+			}
 		} catch (error) {
 			console.error('Failed to add bookmark:', error);
 			toast.error('We failed to capture this link...', {

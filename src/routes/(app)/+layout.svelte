@@ -74,8 +74,14 @@
 		const currentPath = page.url.pathname;
 		const currentCollection = collections.find((c) => c.url === currentPath);
 		document.title = currentCollection ? `${currentCollection.name} • Dotpen` : 'Dotpen';
-		if (currentPath.endsWith('/inbox')) {
-			document.title = 'Inbox • Dotpen';
+
+		switch (currentPath) {
+			case '/inbox':
+				document.title = 'Inbox • Dotpen';
+				break;
+			case '/extensions':
+				document.title = 'Extensions • Dotpen';
+				break;
 		}
 	}
 
@@ -142,6 +148,9 @@
 											Search
 										</button>
 										<button
+											onclick={() => {
+												goto('/extensions');
+											}}
 											class="flex gap-2 text-[14.5px] justify-center rounded-xl cursor-pointer active:scale-98 active:opacity-90 duration-50 items-center border h-full w-full border-[#E4E4E4] dark:border-[#1d1d1d]"
 										>
 											<PuzzlePiece />

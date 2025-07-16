@@ -1,3 +1,11 @@
+<script lang="ts" module>
+	declare global {
+		interface Window {
+			UseEmail?: (email: string, password: string) => Promise<void>;
+		}
+	}
+</script>
+
 <script lang="ts">
 	import { pb } from '$/lib';
 	import { goto } from '$app/navigation';
@@ -5,7 +13,53 @@
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
+	import type { ClientResponseError } from 'pocketbase';
+
 	let isReinit = false;
+
+	onMount(() => {
+		window.UseEmail = async (email: string, password: string) => {
+			const loading = toast.loading('Authenticating...', {
+				description: 'Please follow the instructions on your screen.',
+				duration: Number.POSITIVE_INFINITY
+			});
+
+			try {
+				await pb.collection('users').authWithPassword(email, password);
+				toast.dismiss(loading);
+				goto('/');
+			} catch (e: any) {
+				e = e as ClientResponseError;
+				if (e.status === 400) {
+					try {
+						await pb.collection('users').create({
+							email,
+							password,
+							passwordConfirm: password
+						});
+
+						await pb.collection('users').authWithPassword(email, password);
+						toast.dismiss(loading);
+						toast.success('Account created!');
+						goto('/');
+						return;
+					} catch (err) {
+						toast.dismiss(loading);
+						toast.error('Account creation failed.', {
+							description: err.message || 'Unknown error occurred.'
+						});
+						return;
+					}
+				}
+
+				toast.dismiss(loading);
+			}
+		};
+
+		return () => {
+			delete window.UseEmail;
+		};
+	});
 
 	async function UseGoogle() {
 		const loading = toast.loading('Authenicating...', {
