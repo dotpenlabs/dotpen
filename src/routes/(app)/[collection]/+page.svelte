@@ -50,20 +50,29 @@
 		}
 	}
 
+	import type { RecordModel } from 'pocketbase';
+
+	interface LinkRecordItem extends RecordModel {
+		label: string;
+		link: string;
+		favicon: string;
+		cover: string;
+	}
+
 	async function fetchBookmarks() {
 		const result = await pb.collection('bookmarks').getFullList({
 			filter: `collection = "${pageData.collection}"`,
 			sort: '-created'
 		});
 		const fileToken = await pb.files.getToken();
-		Marks = result.map((bm) => ({
+		Marks = result.map((bm: LinkRecordItem) => ({
 			label: bm.label,
-			icon: pb.files.getURL(bm, 'favicon', {
+			icon: pb.files.getURL(bm, bm.favicon, {
 				thumb: '50x50',
 				token: fileToken
 			}),
 			url: bm.link,
-			cover: pb.files.getURL(bm, 'cover', {
+			cover: pb.files.getURL(bm, bm.cover, {
 				thumb: '0x200',
 				token: fileToken
 			}),
