@@ -156,7 +156,7 @@
 									<button
 										class="flex flex-col gap-1 w-full h-96 overflow-y-auto pb-8"
 										onkeyup={(e) => {
-											if (e.key === 'Enter') {
+											if (e.key === 'n') {
 												states.newCollection = !states.newCollection;
 											}
 										}}
@@ -172,7 +172,7 @@
 												<div class="text-center">
 													<p class="text-lg font-medium">No collections?</p>
 													<p class="text-xs w-64">
-														Just double click (or press enter when selected) here to create one, so
+														Just double click (or press "n" when selected) here to create one, so
 														simple is it!
 													</p>
 												</div>
