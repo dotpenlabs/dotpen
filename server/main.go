@@ -60,12 +60,6 @@ func main() {
 		return e.Next()
 	})
 
-	app.OnRecordUpdate("waitlist").BindFunc(func(e *core.RecordEvent) error {
-
-		
-		return nil
-	})
-
 	if err := app.Start(); err != nil {
 		log.Fatal(err)
 	}

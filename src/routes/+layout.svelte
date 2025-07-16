@@ -8,7 +8,7 @@
 	const { children } = $props();
 </script>
 
-<ModeWatcher defaultMode="system" />
+<ModeWatcher defaultMode="light" />
 <Toaster position="top-right" theme={$mode ? 'light' : 'dark'} richColors />
 
 <content class="lg:block hidden">
