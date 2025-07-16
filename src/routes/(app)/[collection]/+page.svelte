@@ -55,7 +55,7 @@
 			filter: `collection = "${pageData.collection}"`,
 			sort: '-created'
 		});
-		const fileToken = pb.files.getToken();
+		const fileToken = await pb.files.getToken();
 		Marks = result.map((bm) => ({
 			label: bm.label,
 			icon: pb.files.getURL(bm, 'favicon', {
