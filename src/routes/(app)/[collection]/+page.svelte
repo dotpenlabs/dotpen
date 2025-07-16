@@ -10,6 +10,7 @@
 
 	let Marks: LinkItem[] = $state([]);
 	let { data: pageData }: { data: PageData } = $props();
+	let pasteTries = 0;
 
 	$effect(() => {
 		(async () => {
@@ -134,22 +135,22 @@
 		}
 	}
 
+	const isValidUrl = (url: string): boolean => {
+		const urlRegex =
+			/(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/;
+		return urlRegex.test(url);
+	};
+
+	const normalizeUrl = (url: string): string => {
+		const trimmed = url.trim();
+		return trimmed.startsWith('http://') || trimmed.startsWith('https://')
+			? trimmed
+			: `https://${trimmed}`;
+	};
+
 	async function addBookmark(requestUrl: string): Promise<void> {
 		if (!requestUrl?.trim()) return;
 		const startTime = performance.now();
-
-		const normalizeUrl = (url: string): string => {
-			const trimmed = url.trim();
-			return trimmed.startsWith('http://') || trimmed.startsWith('https://')
-				? trimmed
-				: `https://${trimmed}`;
-		};
-
-		const isValidUrl = (url: string): boolean => {
-			const urlRegex =
-				/(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/;
-			return urlRegex.test(url);
-		};
 
 		const isDuplicate = (url: string): boolean => {
 			return Marks.some((mark) => mark.url === url);
@@ -319,6 +320,31 @@
 		masonry?.remove();
 	});
 </script>
+
+<svelte:window
+	onpaste={(e) => {
+		const text = e.clipboardData.getData('text/plain');
+		const textnrml = normalizeUrl(text);
+
+		if (text && isValidUrl(textnrml)) {
+			addBookmark(textnrml);
+		} else {
+			if (pasteTries > 2) {
+				toast.warning('Pastedata is not valid!', {
+					description: "You've tried to paste: " + text
+				});
+				return;
+			}
+
+			console.log('Invalid user action, probably not meant.');
+			pasteTries++;
+
+			setTimeout(() => {
+				pasteTries = 0;
+			}, 10000);
+		}
+	}}
+/>
 
 <content
 	class="h-full w-full overflow-y-auto flex flex-col gap-2 justify-start items-start p-1 pr-6"

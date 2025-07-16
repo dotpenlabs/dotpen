@@ -28,22 +28,6 @@
 			heldLinks = [...heldLinks, newLink];
 		}
 	}
-
-	function handlePaste(e: ClipboardEvent) {
-		const url = e.clipboardData?.getData('text');
-		if (url && !heldLinks.some((l) => l.url === url)) {
-			const newLink = { url };
-			heldLinks = [...heldLinks, newLink];
-		}
-
-		toast('Link moved to dropbox', {
-			position: 'bottom-center',
-			style: 'text-align: center; display: flex; justify-content: center;',
-			description:
-				'Drag & drop links out of the dropbox to organise them in the correct collection.'
-		});
-	}
-
 	function handleDragOver(e: DragEvent) {
 		e.preventDefault();
 		isDragging = true;
@@ -112,11 +96,9 @@
 	});
 
 	onMount(() => {
-		window.addEventListener('paste', handlePaste);
 		window.addEventListener('dragover', handleGlobalDragOver);
 
 		return () => {
-			window.removeEventListener('paste', handlePaste);
 			window.removeEventListener('dragover', handleGlobalDragOver);
 		};
 	});
