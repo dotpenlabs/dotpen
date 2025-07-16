@@ -220,13 +220,11 @@
 
 			const data = await response;
 
-			if (data.favicon?.startsWith('/')) {
-				data.favicon = formattedUrl + data.favicon;
-			}
-
-			if (data.image?.startsWith('/')) {
-				data.image = formattedUrl + data.image;
-			}
+			['favicon', 'image'].forEach((key) => {
+				if (typeof data?.[key] === 'string' && data[key].startsWith('/')) {
+					data[key] = formattedUrl + data[key];
+				}
+			});
 
 			const faviconFile = data.favicon
 				? await fetchImageFileThroughProxy(data.favicon, 'favicon.png')
