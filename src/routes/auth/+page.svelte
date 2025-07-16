@@ -18,8 +18,10 @@
 	let isReinit = false;
 
 	onMount(() => {
+		let loading;
+
 		window.UseEmail = async (email: string, password: string) => {
-			const loading = toast.loading('Authenticating...', {
+			loading = toast.loading('Authenticating...', {
 				description: 'Please follow the instructions on your screen.',
 				duration: Number.POSITIVE_INFINITY
 			});
@@ -57,6 +59,7 @@
 		};
 
 		return () => {
+			toast.dismiss(loading);
 			delete window.UseEmail;
 		};
 	});
