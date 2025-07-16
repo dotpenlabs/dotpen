@@ -31,7 +31,7 @@ func UseCrawl(w http.ResponseWriter, r *http.Request, app core.App) {
 	w.Header().Set("Content-Type", "application/json")
 	defer func() {
 		if rec := recover(); rec != nil {
-			app.Logger().Warn("panic", "error", fmt.Sprint(rec))
+			app.Logger().Warn("GET /api/crawl: Panic", "error", fmt.Sprint(rec))
 			http.Error(w, `{"error":"Internal error"}`, 500)
 		}
 	}()
@@ -56,20 +56,26 @@ func UseCrawl(w http.ResponseWriter, r *http.Request, app core.App) {
 		}
 		h := strings.ToLower(strings.TrimPrefix(pu.Host, "www."))
 
-		switch {
-		case h == "twitter.com" || h == "x.com" || h == "t.co":
+		switch h {
+		case "twitter.com", "x.com", "t.co":
+			app.Logger().Debug("GET /api/crawl: Twitter crawler", "url", u)
 			return UseTwitter(u)
-		case h == "youtube.com" || h == "m.youtube.com" || h == "youtu.be":
+		case "youtube.com", "m.youtube.com", "youtu.be":
+			app.Logger().Debug("GET /api/crawl: YouTube crawler", "url", u)
 			return UseYouTube(u)
-		case h == "tiktok.com" || h == "www.tiktok.com":
+		case "tiktok.com", "www.tiktok.com":
+			app.Logger().Debug("GET /api/crawl: TikTok crawler", "url", u)
 			return UseTikTok(u)
 		default:
+			app.Logger().Debug("GET /api/crawl: Default crawler", "url", u)
 			return UseDefault(u)
 		}
 	})(u)
 
 	// try last time with default (if used an specific crawler)
 	if err != nil {
+		app.Logger().Warn("GET /api/crawl: Overwriting to default crawler", "url", u, "error", err.Error())
+
 		m, err = UseDefault(u)
 		if err == nil {
 			m.URL = u
@@ -77,7 +83,7 @@ func UseCrawl(w http.ResponseWriter, r *http.Request, app core.App) {
 			_ = json.NewEncoder(w).Encode(m)
 			return
 		} else {
-			app.Logger().Warn("crawl error (default)", "url", u, "error", err.Error())
+			app.Logger().Warn("GET /api/crawl: Crawl error (default)", "url", u, "error", err.Error())
 			urlwoh, err := url.Parse(u)
 			if err != nil {
 				http.Error(w, `{"error":"failed"}`, 500)
@@ -270,23 +276,17 @@ func UseTwitter(u string) (*MetaData, error) {
 	}
 
 	m, err := UseDefault(u)
-	if err != nil {
-		return nil, err
-	}
-
-	if m.Title == "" && m.Author != "" {
-		m.Title = m.Author + " on Twitter"
-	}
-
-	if m.Author == "" {
+	if err != nil || (m.Title == "" && m.Author == "" && m.Description == "") {
 		parts := strings.Split(strings.Trim(pu.Path, "/"), "/")
 		if len(parts) > 0 {
-			m.Author = parts[0]
+			username := parts[0]
+			return &MetaData{
+				Title:   "@" + username + " on X",
+				Favicon: "https://unavatar.io/twitter/" + username,
+			}, nil
 		}
+		return nil, fmt.Errorf("invalid X profile URL")
 	}
-
-	m.Favicon = m.Image
-	m.Image = ""
 
 	return m, nil
 }
@@ -342,7 +342,6 @@ func UseTikTok(u string) (*MetaData, error) {
 		AuthorName   string `json:"author_name"`
 		Title        string `json:"title"`
 		ThumbnailURL string `json:"thumbnail_url"`
-		// Je kunt hier nog andere velden toevoegen als je wilt
 	}
 	if err := json.NewDecoder(r.Body).Decode(&d); err != nil {
 		return nil, err
