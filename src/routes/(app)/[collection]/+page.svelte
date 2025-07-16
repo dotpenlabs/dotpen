@@ -50,24 +50,23 @@
 		}
 	}
 
-	function getFileUrl(record: any, field: string, thumb: string): string {
-		return record && record[field]
-			? pb.files.getURL(record, record[field], {
-					thumb
-				})
-			: '';
-	}
-
 	async function fetchBookmarks() {
 		const result = await pb.collection('bookmarks').getFullList({
 			filter: `collection = "${pageData.collection}"`,
 			sort: '-created'
 		});
+		const fileToken = pb.files.getToken();
 		Marks = result.map((bm) => ({
 			label: bm.label,
-			icon: getFileUrl(bm, 'favicon', '50x50'),
+			icon: pb.files.getURL(bm, 'favicon', {
+				thumb: '50x50',
+				token: fileToken
+			}),
 			url: bm.link,
-			cover: getFileUrl(bm, 'cover', '0x200'),
+			cover: pb.files.getURL(bm, 'cover', {
+				thumb: '0x200',
+				token: fileToken
+			}),
 			date: bm.created,
 			id: bm.id
 		}));
