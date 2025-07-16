@@ -25,292 +25,333 @@ type MetaData struct {
 	Date        string `json:"date,omitempty"`
 }
 
-var metadataCache = cache.New(10*time.Minute, 30*time.Minute)
+var c = cache.New(10*time.Minute, 30*time.Minute)
 
 func UseCrawl(w http.ResponseWriter, r *http.Request, app core.App) {
 	w.Header().Set("Content-Type", "application/json")
-
 	defer func() {
 		if rec := recover(); rec != nil {
-			app.Logger().Warn("GET /api/crawl: Recovery triggered", "error", "panic occurred")
-			http.Error(w, `{"error": "Internal server error"}`, http.StatusInternalServerError)
+			app.Logger().Warn("panic", "error", fmt.Sprint(rec))
+			http.Error(w, `{"error":"Internal error"}`, 500)
 		}
 	}()
 
-	targetURL := r.URL.Query().Get("url")
-	if targetURL == "" {
-		http.Error(w, `{"error": "URL query parameter is required"}`, http.StatusBadRequest)
+	u := r.URL.Query().Get("url")
+	if u == "" {
+		http.Error(w, `{"error":"URL required"}`, 400)
+		return
+	}
+	if !strings.HasPrefix(u, "http") {
+		u = "https://" + u
+	}
+	if v, f := c.Get(u); f {
+		_ = json.NewEncoder(w).Encode(v)
 		return
 	}
 
-	if !strings.HasPrefix(targetURL, "http://") && !strings.HasPrefix(targetURL, "https://") {
-		targetURL = "https://" + targetURL
-	}
-
-	if cached, found := metadataCache.Get(targetURL); found {
-		_ = json.NewEncoder(w).Encode(cached)
-		return
-	}
-
-	parsedURL, err := url.Parse(targetURL)
-	if err != nil || parsedURL.Host == "" {
-		http.Error(w, `{"error": "Invalid URL"}`, http.StatusBadRequest)
-		return
-	}
-
-	var meta *MetaData
-	if isTwitterURL(parsedURL.Host) {
-		meta, err = fetchTwitterMeta(targetURL)
-	} else {
-		meta, err = fetchGenericMeta(targetURL)
-	}
-
-	if err != nil {
-		if strings.HasPrefix(targetURL, "https://") {
-			altURL := "http://" + strings.TrimPrefix(targetURL, "https://")
-			parsedURL, err2 := url.Parse(altURL)
-			if err2 == nil && parsedURL.Host != "" {
-				if isTwitterURL(parsedURL.Host) {
-					meta, err = fetchTwitterMeta(altURL)
-				} else {
-					meta, err = fetchGenericMeta(altURL)
-				}
-				if err == nil {
-					meta.URL = altURL
-					metadataCache.Set(targetURL, meta, cache.DefaultExpiration)
-					_ = json.NewEncoder(w).Encode(meta)
-					return
-				}
-			}
+	m, err := (func(u string) (*MetaData, error) {
+		pu, err := url.Parse(u)
+		if err != nil || pu.Host == "" {
+			return nil, fmt.Errorf("invalid url")
 		}
+		h := strings.ToLower(strings.TrimPrefix(pu.Host, "www."))
 
-		app.Logger().Warn("GET /api/crawl: Failed to fetch or parse", "error", err.Error())
-		http.Error(w, `{"error": "Failed to fetch or parse the URL"}`, http.StatusInternalServerError)
-		return
+		switch {
+		case h == "twitter.com" || h == "x.com" || h == "t.co":
+			return UseTwitter(u)
+		case h == "youtube.com" || h == "m.youtube.com" || h == "youtu.be":
+			return UseYouTube(u)
+		case h == "tiktok.com" || h == "www.tiktok.com":
+			return UseTikTok(u)
+		default:
+			return UseDefault(u)
+		}
+	})(u)
+
+	// try last time with default (if used an specific crawler)
+	if err != nil {
+		m, err = UseDefault(u)
+		if err == nil {
+			m.URL = u
+			c.Set(u, m, cache.DefaultExpiration)
+			_ = json.NewEncoder(w).Encode(m)
+			return
+		} else {
+			app.Logger().Warn("crawl error (default)", "url", u, "error", err.Error())
+			urlwoh, err := url.Parse(u)
+			if err != nil {
+				http.Error(w, `{"error":"failed"}`, 500)
+				return
+			}
+
+			if m == nil {
+				m = &MetaData{}
+			}
+			m.Title = urlwoh.Hostname()
+			m.Favicon = urlwoh.Host + "/favicon.ico"
+		}
 	}
 
-	meta.URL = targetURL
-	metadataCache.Set(targetURL, meta, cache.DefaultExpiration)
-	_ = json.NewEncoder(w).Encode(meta)
+	m.URL = u
+	c.Set(u, m, cache.DefaultExpiration)
+	_ = json.NewEncoder(w).Encode(m)
 }
 
-func isTwitterURL(host string) bool {
-	host = strings.ToLower(strings.TrimPrefix(host, "www."))
-	return host == "twitter.com" || host == "t.co" || host == "x.com"
-}
+func UseDefault(u string) (*MetaData, error) {
+	req, _ := http.NewRequest("GET", u, nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
+	req.Header.Set("Connection", "keep-alive")
 
-func fetchTwitterMeta(tweetURL string) (*MetaData, error) {
-	endpoint := "https://publish.twitter.com/oembed?url=" + url.QueryEscape(tweetURL)
-	resp, err := http.Get(endpoint)
+	cl := &http.Client{Timeout: 10 * time.Second}
+	r, err := cl.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer r.Body.Close()
 
-	contentType := resp.Header.Get("Content-Type")
-	if !strings.Contains(contentType, "application/json") {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("unexpected content-type %s; body: %.100s", contentType, body)
+	if r.StatusCode >= 400 {
+		b, _ := io.ReadAll(r.Body)
+		return nil, fmt.Errorf("HTTP %d: %.100s", r.StatusCode, b)
 	}
 
-	var result struct {
-		HTML       string `json:"html"`
-		AuthorName string `json:"author_name"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("failed to decode Twitter JSON: %v (body: %.100s)", err, body)
+	b, _ := io.ReadAll(r.Body)
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(b)))
+	if err != nil {
+		return nil, err
 	}
 
-	re := regexp.MustCompile(`<p[^>]*>(.*?)</p>`)
-	matches := re.FindStringSubmatch(result.HTML)
-	text := ""
-	if len(matches) > 1 {
-		text = stripTags(matches[1])
+	m := &MetaData{}
+	set := func(f *string, v string) {
+		if *f == "" && v != "" {
+			*f = v
+		}
 	}
 
-	title := fmt.Sprintf("%s: %s", result.AuthorName, text)
-	if text == "" {
-		title = fmt.Sprintf("%s's tweet", result.AuthorName)
+	doc.Find("meta").Each(func(_ int, s *goquery.Selection) {
+		if n, ok := s.Attr("name"); ok {
+			v, _ := s.Attr("content")
+			switch strings.ToLower(n) {
+			case "title":
+				set(&m.Title, v)
+			case "description":
+				set(&m.Description, v)
+			case "author":
+				set(&m.Author, v)
+			}
+		}
+		if p, ok := s.Attr("property"); ok {
+			v, _ := s.Attr("content")
+			switch strings.ToLower(p) {
+			case "og:title":
+				set(&m.Title, v)
+			case "og:description":
+				set(&m.Description, v)
+			case "og:image":
+				set(&m.Image, v)
+			case "og:url":
+				set(&m.URL, v)
+			}
+		}
+	})
+
+	doc.Find("link").EachWithBreak(func(_ int, s *goquery.Selection) bool {
+		if r, _ := s.Attr("rel"); strings.Contains(strings.ToLower(r), "icon") {
+			href, _ := s.Attr("href")
+			if u2, err := url.Parse(href); err == nil {
+				if !u2.IsAbs() {
+					base, _ := url.Parse(u)
+					href = base.ResolveReference(u2).String()
+				}
+				m.Favicon = href
+			}
+			return false
+		}
+		return true
+	})
+
+	doc.Find("script[type='application/ld+json']").Each(func(_ int, s *goquery.Selection) {
+		var d interface{}
+		if err := json.Unmarshal([]byte(s.Text()), &d); err != nil {
+			return
+		}
+		var list []map[string]interface{}
+		switch x := d.(type) {
+		case map[string]interface{}:
+			list = append(list, x)
+		case []interface{}:
+			for _, i := range x {
+				if o, ok := i.(map[string]interface{}); ok {
+					list = append(list, o)
+				}
+			}
+		}
+		for _, o := range list {
+			if m.Title == "" {
+				if v, ok := o["name"].(string); ok {
+					m.Title = v
+				}
+			}
+			if m.Description == "" {
+				if v, ok := o["description"].(string); ok {
+					m.Description = v
+				}
+			}
+			if m.Image == "" {
+				switch img := o["image"].(type) {
+				case string:
+					m.Image = img
+				case map[string]interface{}:
+					if v, ok := img["url"].(string); ok {
+						m.Image = v
+					}
+				}
+			}
+			if m.Author == "" {
+				switch a := o["author"].(type) {
+				case string:
+					m.Author = a
+				case map[string]interface{}:
+					if v, ok := a["name"].(string); ok {
+						m.Author = v
+					}
+				}
+			}
+			if m.Date == "" {
+				if v, ok := o["datePublished"].(string); ok {
+					m.Date = v
+				}
+			}
+		}
+	})
+
+	if m.Title == "" {
+		m.Title = strings.TrimSpace(doc.Find("title").First().Text())
+	}
+
+	return m, nil
+}
+
+func UseTwitter(u string) (*MetaData, error) {
+	pu, err := url.Parse(u)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.Contains(pu.Path, "/status/") {
+		r, err := http.Get("https://publish.twitter.com/oembed?url=" + url.QueryEscape(u))
+		if err != nil {
+			return nil, err
+		}
+		defer r.Body.Close()
+
+		var d struct {
+			HTML, AuthorName string
+		}
+		if err := json.NewDecoder(r.Body).Decode(&d); err != nil {
+			return nil, err
+		}
+
+		txt := ""
+		if m := regexp.MustCompile(`<p[^>]*>(.*?)</p>`).FindStringSubmatch(d.HTML); len(m) > 1 {
+			txt = regexp.MustCompile(`<.*?>`).ReplaceAllString(m[1], "")
+		}
+
+		title := d.AuthorName + "'s tweet"
+		if txt != "" {
+			title = d.AuthorName + ": " + txt
+		}
+
+		return &MetaData{
+			Title:  title,
+			Author: d.AuthorName,
+		}, nil
+	}
+
+	m, err := UseDefault(u)
+	if err != nil {
+		return nil, err
+	}
+
+	if m.Title == "" && m.Author != "" {
+		m.Title = m.Author + " on Twitter"
+	}
+
+	if m.Author == "" {
+		parts := strings.Split(strings.Trim(pu.Path, "/"), "/")
+		if len(parts) > 0 {
+			m.Author = parts[0]
+		}
+	}
+
+	m.Favicon = m.Image
+	m.Image = ""
+
+	return m, nil
+}
+
+func UseYouTube(u string) (*MetaData, error) {
+	m, err := UseDefault(u)
+	if err != nil {
+		return nil, err
+	}
+
+	pu, _ := url.Parse(u)
+	h := strings.ToLower(strings.TrimPrefix(pu.Host, "www."))
+
+	if m.Image == "" {
+		id := ""
+		if h == "youtu.be" {
+			id = strings.Trim(pu.Path, "/")
+		} else if pu.Query().Has("v") {
+			id = pu.Query().Get("v")
+		} else {
+			parts := strings.Split(pu.Path, "/")
+			for i := range parts {
+				if parts[i] == "embed" && i+1 < len(parts) {
+					id = parts[i+1]
+					break
+				}
+			}
+		}
+		if id != "" {
+			m.Image = "https://img.youtube.com/vi/" + id + "/maxresdefault.jpg"
+		}
+	}
+
+	if m.Title == "" {
+		if m.Author != "" {
+			m.Title = m.Author + "'s video"
+		} else {
+			m.Title = "YouTube Video"
+		}
+	}
+
+	return m, nil
+}
+
+func UseTikTok(u string) (*MetaData, error) {
+	r, err := http.Get("https://www.tiktok.com/oembed?url=" + url.QueryEscape(u))
+	if err != nil {
+		return nil, err
+	}
+	defer r.Body.Close()
+
+	var d struct {
+		AuthorName   string `json:"author_name"`
+		Title        string `json:"title"`
+		ThumbnailURL string `json:"thumbnail_url"`
+		// Je kunt hier nog andere velden toevoegen als je wilt
+	}
+	if err := json.NewDecoder(r.Body).Decode(&d); err != nil {
+		return nil, err
 	}
 
 	return &MetaData{
-		Title:  title,
-		Author: result.AuthorName,
+		Title:  d.Title,
+		Author: d.AuthorName,
+		Image:  d.ThumbnailURL,
+		URL:    u,
 	}, nil
-}
-
-func fetchGenericMeta(targetURL string) (*MetaData, error) {
-	req, err := http.NewRequest("GET", targetURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36")
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("HTTP status %d, body: %.200s", resp.StatusCode, body)
-	}
-
-	htmlBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(htmlBytes)))
-	if err != nil {
-		return nil, err
-	}
-
-	meta := &MetaData{}
-
-	// Meta tags
-	doc.Find("meta").Each(func(i int, s *goquery.Selection) {
-		if name, exists := s.Attr("name"); exists {
-			content, _ := s.Attr("content")
-			switch strings.ToLower(name) {
-			case "title":
-				if meta.Title == "" {
-					meta.Title = content
-				}
-			case "description":
-				if meta.Description == "" {
-					meta.Description = content
-				}
-			case "author":
-				if meta.Author == "" {
-					meta.Author = content
-				}
-			}
-		}
-		if property, exists := s.Attr("property"); exists {
-			content, _ := s.Attr("content")
-			switch strings.ToLower(property) {
-			case "og:title":
-				if meta.Title == "" {
-					meta.Title = content
-				}
-			case "og:description":
-				if meta.Description == "" {
-					meta.Description = content
-				}
-			case "og:image":
-				if meta.Image == "" {
-					meta.Image = content
-				}
-			case "og:url":
-				if meta.URL == "" {
-					meta.URL = content
-				}
-			}
-		}
-	})
-
-	// Favicon extraction
-	if meta.Favicon == "" {
-		var faviconHref string
-		doc.Find("link").EachWithBreak(func(i int, s *goquery.Selection) bool {
-			if rel, _ := s.Attr("rel"); strings.Contains(strings.ToLower(rel), "icon") {
-				faviconHref, _ = s.Attr("href")
-				return false // break
-			}
-			return true // continue
-		})
-		if faviconHref != "" {
-			faviconURL, err := url.Parse(faviconHref)
-			if err == nil && !faviconURL.IsAbs() {
-				base, _ := url.Parse(targetURL)
-				faviconHref = base.ResolveReference(faviconURL).String()
-			}
-			meta.Favicon = faviconHref
-		}
-	}
-
-	// JSON-LD parsing
-	doc.Find("script[type='application/ld+json']").Each(func(i int, s *goquery.Selection) {
-		jsonText := s.Text()
-		var data interface{}
-		if err := json.Unmarshal([]byte(jsonText), &data); err != nil {
-			return
-		}
-		switch v := data.(type) {
-		case []interface{}:
-			for _, item := range v {
-				parseJSONLD(item, meta)
-			}
-		case map[string]interface{}:
-			parseJSONLD(v, meta)
-		}
-	})
-
-	// Title fallback
-	if meta.Title == "" {
-		meta.Title = strings.TrimSpace(doc.Find("title").Text())
-	}
-
-	return meta, nil
-}
-
-func parseJSONLD(data interface{}, meta *MetaData) {
-	obj, ok := data.(map[string]interface{})
-	if !ok {
-		return
-	}
-
-	// Titel
-	if meta.Title == "" {
-		if name, ok := obj["name"].(string); ok {
-			meta.Title = name
-		}
-	}
-
-	// Beschrijving
-	if meta.Description == "" {
-		if desc, ok := obj["description"].(string); ok {
-			meta.Description = desc
-		}
-	}
-
-	// Afbeelding
-	if meta.Image == "" {
-		switch img := obj["image"].(type) {
-		case string:
-			meta.Image = img
-		case map[string]interface{}:
-			if urlStr, ok := img["url"].(string); ok {
-				meta.Image = urlStr
-			}
-		}
-	}
-
-	// Auteur
-	if meta.Author == "" {
-		switch author := obj["author"].(type) {
-		case string:
-			meta.Author = author
-		case map[string]interface{}:
-			if name, ok := author["name"].(string); ok {
-				meta.Author = name
-			}
-		}
-	}
-
-	// Publicatiedatum
-	if meta.Date == "" {
-		if date, ok := obj["datePublished"].(string); ok {
-			meta.Date = date
-		}
-	}
-}
-
-func stripTags(html string) string {
-	re := regexp.MustCompile(`<.*?>`)
-	return re.ReplaceAllString(html, "")
 }

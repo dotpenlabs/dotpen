@@ -22,6 +22,7 @@ func main() {
 			modules.UseCrawl(e.Response, e.Request, app)
 			return nil
 		}).Bind(apis.RequireAuth())
+		
 		se.Router.GET("/api/proxy", func(e *core.RequestEvent) error {
 			modules.UseProxy(e.Response, e.Request)
 			return nil
