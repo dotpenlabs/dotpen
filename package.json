@@ -52,13 +52,11 @@
     "phosphor-svelte": "^3.0.1",
     "pocketbase": "^0.26.1",
     "puppeteer": "^24.12.1",
+    "svelte-markdown": "^0.4.1",
     "svelte-masonry": "^0.1.5",
     "svelte-sonner": "^0.3.28",
     "tailwind-merge": "^3.0.2",
     "vanilla-cookieconsent": "3.1.0"
-  },
-  "overrides": {
-    "masonry-layout": "github:cliqqz/masonry#ffd2b614237176fd184b70b90a4559f9716dd29c"
   },
   "trustedDependencies": [
     "core-js",

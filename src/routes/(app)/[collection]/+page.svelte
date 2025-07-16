@@ -100,9 +100,9 @@
 			},
 			breakAt: {
 				1400: 5,
-				940: 4,
-				520: 3,
-				400: 2
+				1100: 4,
+				800: 3,
+				520: 2
 			}
 		});
 
@@ -116,6 +116,23 @@
 			initMasonry();
 		}
 	});
+
+	async function fetchImageFileThroughProxy(url: string, filename: string): Promise<File | null> {
+		try {
+			const res = await fetch(pb.baseURL + `api/proxy?url=${encodeURIComponent(url)}`, {
+				headers: {
+					Authorization: `Bearer ${pb.authStore.token}`
+				}
+			});
+			if (!res.ok) return null;
+			const blob = await res.blob();
+			const ext = filename.split('.').pop() || 'png';
+			return new File([blob], filename, { type: blob.type || `image/${ext}` });
+		} catch (e) {
+			console.error('Failed to fetch image through proxy', e);
+			return null;
+		}
+	}
 
 	async function addBookmark(requestUrl: string): Promise<void> {
 		if (!requestUrl?.trim()) return;
@@ -148,34 +165,6 @@
 					}
 				});
 			});
-		};
-
-		const checkImageExists = (url: string): Promise<string> => {
-			return new Promise((resolve) => {
-				const img = new Image();
-				img.onload = () => resolve(url);
-				img.onerror = () => resolve('');
-				img.src = url;
-			});
-		};
-
-		const getFaviconUrl = async (url: string): Promise<string> => {
-			const origin = new URL(url).origin;
-			const faviconPaths = ['/favicon.ico', '/favicon.png'];
-
-			for (const path of faviconPaths) {
-				const proxiedUrl = `/api/proxy-image?url=${encodeURIComponent(`${origin}${path}`)}`;
-				const faviconUrl = await checkImageExists(proxiedUrl);
-				if (faviconUrl) return proxiedUrl;
-			}
-
-			return '';
-		};
-
-		const getCoverImage = (image: string | undefined, baseUrl: string): string => {
-			if (!image) return '';
-			const coverUrl = image.startsWith('/') ? `${new URL(baseUrl).origin}${image}` : image;
-			return `/api/proxy-image?url=${encodeURIComponent(coverUrl)}`;
 		};
 
 		const showWarningToast = (bookmark: LinkItem): void => {
@@ -223,16 +212,20 @@
 		});
 
 		try {
-			const response = await fetch(`/api/crawl?url=${encodeURIComponent(formattedUrl)}`);
-			const data = await response.json();
+			const response = await pb.send('/api/crawl', {
+				query: {
+					url: formattedUrl
+				}
+			});
 
-			const [faviconUrl, coverImage] = await Promise.all([
-				getFaviconUrl(formattedUrl),
-				getCoverImage(data.image, formattedUrl)
-			]);
+			const data = await response;
 
-			const faviconFile = faviconUrl ? await urlToFile(faviconUrl, 'favicon.png') : null;
-			const coverFile = coverImage ? await urlToFile(coverImage, 'cover.png') : null;
+			const faviconFile = data.favicon
+				? await fetchImageFileThroughProxy(data.favicon, 'favicon.png')
+				: null;
+			const coverFile = data.image
+				? await fetchImageFileThroughProxy(data.image, 'cover.png')
+				: null;
 
 			const newBookmark: LinkItem = {
 				label: data.title || formattedUrl,
@@ -271,32 +264,49 @@
 	}
 
 	function removeBookmark(item: LinkItem) {
+		let confirmed = true;
+
+		const bm = Marks.find((mark) => mark.id === item.id);
+		if (!bm) return;
+
+		Marks = Marks.filter((mark) => mark.id !== item.id);
+		masonry?.recalculate(true);
+
+		const confirmDelete = () => {
+			(async () => {
+				if (!confirmed) return;
+				try {
+					if (bm.id) {
+						await pb.collection('bookmarks').delete(bm.id);
+						await fetchBookmarks();
+					}
+				} catch (err) {
+					console.error('Failed to delete bookmark', err);
+					toast.error('Failed to delete bookmark!');
+				}
+			})();
+		};
+
 		toast.info('Link has been removed', {
 			description: 'This link has been removed from the collection.',
 			action: {
 				label: 'Undo',
-				onClick: () => {
-					Marks = [item, ...Marks];
-					masonry?.recalculate(true);
+				onClick: async () => {
+					confirmed = false;
+					try {
+						Marks = [bm, ...Marks];
+						masonry?.recalculate(true);
+						await fetchBookmarks();
+					} catch (err) {
+						console.error('Failed to undo delete', err);
+						toast.error('Failed to restore bookmark!');
+					}
 				}
-			}
+			},
+
+			onAutoClose: () => confirmDelete(),
+			onDismiss: () => confirmDelete()
 		});
-		(async () => {
-			try {
-				const bm = Marks.find((mark) => mark.url === item.url);
-				if (bm && bm.id) {
-					await pb.collection('bookmarks').delete(bm.id);
-					await fetchBookmarks();
-					masonry?.recalculate(true);
-				} else {
-					Marks = Marks.filter((mark) => mark.url !== item.url);
-					masonry?.recalculate(true);
-				}
-			} catch (err) {
-				console.error('Failed to delete bookmark', err);
-				toast.error('Failed to delete bookmark!');
-			}
-		})();
 	}
 
 	onDestroy(() => {
@@ -304,11 +314,9 @@
 	});
 </script>
 
-<svelte:window
-	onpaste={(e: ClipboardEvent) => {
-		const userData = e.clipboardData?.getData('text');
-		addBookmark(userData);
-	}}
+<content
+	class="h-full w-full overflow-y-auto flex flex-col gap-2 justify-start items-start p-1 pr-6"
+	role="presentation"
 	ondragover={(e: DragEvent) => {
 		e.preventDefault();
 	}}
@@ -316,11 +324,6 @@
 		e.preventDefault();
 		addBookmark(e.dataTransfer?.getData('text/plain'));
 	}}
-/>
-
-<content
-	class="h-full w-full overflow-y-auto flex flex-col gap-2 justify-start items-start p-1 pr-6"
-	role="presentation"
 >
 	{#if Marks.length === 0}
 		<div

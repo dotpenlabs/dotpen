@@ -5,5 +5,9 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 * {
-    font-family: 'Lora', serif;
+	font-family: 'Lora', serif;
+}
+
+@theme {
+	--font-sans: 'Inter', sans-serif;
 }

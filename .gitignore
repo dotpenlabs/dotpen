@@ -23,6 +23,8 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 # Serverside
-server
 bun.lockb
 todo.md
+
+.ignore*
+server/pb_data/*

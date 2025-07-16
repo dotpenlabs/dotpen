@@ -4,18 +4,19 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
+	import { toast } from 'svelte-sonner';
 
 	onMount(() => {
-		if (!pb.authStore.isValid) {
-			goto('/auth');
-		} else {
-			goto('/inbox');
-		}
+		console.log('[DUM] Logging out...');
+
+		pb.authStore.clear();
+		toast('Byee!');
+		goto('/');
 	});
 </script>
 
 <svelte:head>
-	<title>Dotpen</title>
+	<title>Dotpen User Management</title>
 </svelte:head>
 
 <content class="absolute h-full w-full">
