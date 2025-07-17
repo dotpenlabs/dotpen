@@ -66,6 +66,9 @@ func UseCrawl(w http.ResponseWriter, r *http.Request, app core.App) {
 		case "tiktok.com", "www.tiktok.com":
 			app.Logger().Debug("GET /api/crawl: TikTok crawler", "url", u)
 			return UseTikTok(u)
+		case "open.spotify.com", "spotify.com":
+			app.Logger().Debug("GET /api/crawl: Spotify crawler", "url", u)
+			return UseSpotify(u)
 		default:
 			app.Logger().Debug("GET /api/crawl: Default crawler", "url", u)
 			return UseDefault(u)
@@ -292,6 +295,26 @@ func UseTwitter(u string) (*MetaData, error) {
 }
 
 func UseYouTube(u string) (*MetaData, error) {
+	oembedURL := "https://www.youtube.com/oembed?url=" + url.QueryEscape(u) + "&format=json"
+	resp, err := http.Get(oembedURL)
+	if err == nil && resp.StatusCode == 200 {
+		defer resp.Body.Close()
+
+		var o struct {
+			Title        string `json:"title"`
+			AuthorName   string `json:"author_name"`
+			ThumbnailURL string `json:"thumbnail_url"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&o); err == nil {
+			return &MetaData{
+				Title:  o.Title,
+				Author: o.AuthorName,
+				Image:  o.ThumbnailURL,
+				URL:    u,
+			}, nil
+		}
+	}
+
 	m, err := UseDefault(u)
 	if err != nil {
 		return nil, err
@@ -328,6 +351,8 @@ func UseYouTube(u string) (*MetaData, error) {
 		}
 	}
 
+	m.Favicon = "https://www.gstatic.com/youtube/img/branding/favicon/favicon_144x144_v2.png"
+
 	return m, nil
 }
 
@@ -352,5 +377,27 @@ func UseTikTok(u string) (*MetaData, error) {
 		Author: d.AuthorName,
 		Image:  d.ThumbnailURL,
 		URL:    u,
+	}, nil
+}
+
+func UseSpotify(u string) (*MetaData, error) {
+	r, err := http.Get("https://embed.spotify.com/oembed/?url=" + url.QueryEscape(u))
+	if err != nil {
+		return nil, err
+	}
+	defer r.Body.Close()
+
+	var d struct {
+		Title        string `json:"title"`
+		ThumbnailURL string `json:"thumbnail_url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&d); err != nil {
+		return nil, err
+	}
+
+	return &MetaData{
+		Title: d.Title,
+		Image: d.ThumbnailURL,
+		URL:   u,
 	}, nil
 }

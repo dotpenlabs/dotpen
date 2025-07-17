@@ -5,6 +5,7 @@ go 1.23.2
 require (
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/pocketbase/dbx v1.11.0
 	github.com/pocketbase/pocketbase v0.28.4
 )
 
@@ -32,7 +33,6 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
-	github.com/pocketbase/dbx v1.11.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/spf13/cast v1.9.2 // indirect
