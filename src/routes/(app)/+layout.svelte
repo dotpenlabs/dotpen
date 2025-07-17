@@ -2,6 +2,7 @@
 	declare global {
 		interface Window {
 			SetHydrating: (id: string, value: boolean) => void;
+			SetColored: (isColored: 'default' | 'green' | 'red') => void;
 		}
 	}
 </script>
@@ -59,6 +60,7 @@
 
 	let collections = $state([]);
 	let isHydrating = $state(false);
+	let setColored = $state('default') as 'default' | 'green' | 'red';
 
 	const hydrationStatus: Record<string, boolean> = {};
 	const hydrationTimers: Record<string, NodeJS.Timeout> = {};
@@ -94,7 +96,7 @@
 			if (!userId) return;
 			const result = await pb.collection('collections').getFullList({
 				filter: `user = "${userId}" && name != "system_inbox"`,
-				sort: '-created'
+				sort: 'created'
 			});
 			const freshCollections = result.map((col) => ({
 				id: col.id,
@@ -153,6 +155,13 @@
 			}
 		};
 
+		window.SetColored = (isColored: 'default' | 'green' | 'red') => {
+			setColored = isColored;
+			setTimeout(() => {
+				setColored = 'default';
+			}, 1750);
+		};
+
 		loading = false;
 
 		if (!pb.authStore.isValid) {
@@ -185,7 +194,14 @@
 {#if loading}
 	<Loading />
 {:else}
-	<content class="bg-[#FAF5F2] dark:bg-[#171616] absolute flex h-full w-full p-3 overflow-hidden">
+	<content
+		class={`bg-[#FAF5F2] dark:bg-[#171616] absolute flex h-full w-full p-3 overflow-hidden transition-colors duration-1200 ` +
+			(setColored === 'green'
+				? 'bg-green-100 dark:bg-green-900'
+				: '' + setColored === 'red'
+					? 'bg-red-100 dark:bg-red-900'
+					: '')}
+	>
 		<div
 			class="h-full w-full bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden"
 		>
@@ -241,7 +257,7 @@
 										class="flex flex-col gap-1 w-full h-96 overflow-y-auto pb-8"
 										onkeyup={(e) => {
 											if (e.key === 'n') {
-												states.newCollection = !states.newCollection;
+												states.newCollection = true;
 											}
 										}}
 										ondblclick={() => {
@@ -265,7 +281,7 @@
 										{#each collections as collection}
 											<Item
 												url={collection.url}
-												icon={collection.icon}
+												icon={/^\p{Emoji}/u.test(collection.name) ? null : Folder}
 												label={collection.name}
 												removeCollection={async () => {
 													try {
@@ -285,6 +301,7 @@
 										{/each}
 										{#if states.collection_creating}
 											<div
+												role="dialog"
 												class="flex items-center relative gap-2 w-full duration-200 ring-1 ring-stone-200 dark:ring-stone-800 bg-stone-100 dark:bg-stone-800 rounded-lg px-2 py-1 animate-pulse opacity-70"
 											>
 												<Folder class="size-4 opacity-80" />
@@ -296,14 +313,14 @@
 										{/if}
 										{#if states.newCollection}
 											<div
-												transition:flyAndScale={{ duration: 100, y: -5 }}
+												in:flyAndScale={{ duration: 100, y: -5 }}
 												class="flex items-center relative gap-2 cursor-pointer w-full duration-200 ring-1 ring-stone-200 dark:ring-stone-800 bg-stone-100 dark:bg-stone-800 rounded-lg px-2 py-1"
 											>
 												<Folder class="size-4 opacity-80" />
 												<input
 													type="text"
 													class="w-full text-sm p-1 m-0 rounded-lg bg-transparent border-none focus:outline-none focus:ring-0"
-													placeholder="Start typing..."
+													placeholder="Start typing... (press esc to exit)"
 													aria-label="Input field for typing"
 													onkeyup={async (e) => {
 														if (e.key === 'Enter') {

@@ -12,6 +12,7 @@
 
 	import Link from '$/lib/components/item/link.svelte';
 	import Loading from '$/lib/components/loading.svelte';
+	import { browser } from '$app/environment';
 
 	let { data: pageData }: { data: PageData } = $props();
 	let url = $state('');
@@ -63,7 +64,6 @@
 			console.log('[debug] bm.favicon:', bm.favicon);
 			console.log('[debug] path:', path);
 			console.log('[debug] pb.baseURL:', pb.baseURL);
-			console.log('[debug] pb.authStore.token:', pb.authStore.token);
 			console.log('[debug] bm.id:', bm.id);
 			console.log('[debug] colId:', colId);
 			console.log('[debug] bm.cover:', bm.cover);
@@ -144,13 +144,15 @@
 		bookmarks = bmcache;
 		token = await pb.files.getToken();
 
+		masonry?.recalculate();
+
 		window.SetHydrating('collection', false);
 	}
 
 	async function UseMasonry(): Promise<void> {
 		await tick();
 
-		if (!Macy) {
+		if (!Macy && browser) {
 			const macyModule = await import('macy');
 			Macy = macyModule.default;
 		}
@@ -317,10 +319,11 @@
 		if (base64_image) record._cover_base64 = base64_image;
 
 		// - Finishing up -
-
 		bookmarks.unshift(record);
 		localStorage.setItem(colId + ':cache', JSON.stringify(bookmarks));
 		toast.dismiss(loading);
+
+		window.SetColored('green');
 	}
 
 	async function removeBookmark(item: Bookmark) {
@@ -328,6 +331,8 @@
 		if (!bm) return;
 
 		bookmarks = bookmarks.filter((m) => m.id !== item.id);
+		localStorage.setItem(colId + ':cache', JSON.stringify(bookmarks));
+
 		await tick();
 
 		requestAnimationFrame(() => {
@@ -343,6 +348,10 @@
 					await pb.collection('bookmarks').update(bm.id, {
 						deleted: true
 					});
+					localStorage.setItem(colId + ':cache', JSON.stringify(bookmarks));
+					window.SetColored('red');
+				} else {
+					toast.error('Failed to delete bookmark! (local error)');
 				}
 			} catch (err) {
 				console.error('Failed to delete bookmark', err);
@@ -350,20 +359,20 @@
 			}
 		};
 
-		toast.info('Link has been removed', {
-			description: 'This link has been removed from the collection.',
+		toast.info('Link is deleted!', {
+			description: 'The link will deleted when this dialog is dismissed.',
 			action: {
 				label: 'Undo',
 				onClick: async () => {
 					confirmed = false;
 					try {
 						bookmarks = [bm, ...bookmarks];
+						localStorage.setItem(colId + ':cache', JSON.stringify(bookmarks));
 						await tick();
-						requestAnimationFrame(() => {
-							masonry?.recalculate(true);
-							main();
+						requestAnimationFrame(async () => {
+							await masonry?.recalculate(true);
+							await main();
 						});
-						await main();
 					} catch (err) {
 						console.error('Failed to undo delete', err);
 						toast.error('Failed to restore bookmark!');
@@ -429,7 +438,17 @@
 		{:else}
 			<div id="main-content" class="w-full min-h-full h-fit">
 				{#each bookmarks as item, idx (item.id)}
-					<Link removeItem={() => removeBookmark(item)} data={item} index={idx} filetoken={token} />
+					<Link
+						removeItemCallback={(e: Event) => {
+							requestAnimationFrame(() => {
+								masonry?.recalculate(true);
+							});
+						}}
+						removeItem={() => removeBookmark(item)}
+						data={item}
+						index={idx}
+						filetoken={token}
+					/>
 				{/each}
 			</div>
 		{/if}

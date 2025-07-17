@@ -4,6 +4,7 @@ go 1.23.2
 
 require (
 	github.com/PuerkitoBio/goquery v1.10.3
+	github.com/joho/godotenv v1.5.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pocketbase/dbx v1.11.0
 	github.com/pocketbase/pocketbase v0.28.4

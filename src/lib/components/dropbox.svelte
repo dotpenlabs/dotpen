@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { fade, fly, scale } from 'svelte/transition';
 	import { cubicOut, elasticOut } from 'svelte/easing';
-	import { HandGrabbing } from 'phosphor-svelte';
+	import { Folders, HandGrabbing } from 'phosphor-svelte';
 	import { toast } from 'svelte-sonner';
 
 	let { ondrop } = $props<{
@@ -117,7 +117,7 @@
 		<div class="p-4 h-full flex flex-col">
 			{#if linkCount === 0}
 				<div class="flex-1 flex flex-col justify-center items-center">
-					<HandGrabbing class="size-6 opacity-45" />
+					<HandGrabbing class="size-6 opacity-65" />
 					<p class="opacity-65 text-xs text-center w-[65%] mt-2">
 						Drag & drop links, to organise them.
 					</p>

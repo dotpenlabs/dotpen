@@ -3,6 +3,9 @@
 	import { page } from '$app/state';
 	import { ContextMenu } from 'bits-ui';
 	import Trash from 'phosphor-svelte/lib/Trash';
+	import TrashIcon from '$lib/components/movingicons/trash.svelte';
+
+	let trashHovered = $state(false);
 
 	let { url, icon: Icon, label, removeCollection = undefined } = $props();
 	function handleClick() {
@@ -47,16 +50,20 @@
 		</ContextMenu.Trigger>
 		<ContextMenu.Portal>
 			<ContextMenu.Content
+				onmouseenter={(e) => {
+					trashHovered = true;
+				}}
+				onmouseleave={(e) => {
+					trashHovered = false;
+				}}
 				class="p-2 bg-white/95 backdrop-blur-xl border border-gray-200/50 rounded-xl shadow-2xl shadow-black/10 text-gray-800 min-w-[200px] animate-in fade-in-0 zoom-in-95 duration-200 ring-1 ring-black/5"
 			>
 				<ContextMenu.Item
 					onclick={removeCollection}
 					class="group flex items-center justify-between h-9 px-3 py-2 text-sm font-medium rounded-lg cursor-pointer select-none transition-all duration-150 ease-out hover:bg-red-50 focus:bg-red-50 focus:outline-none active:scale-[0.98]"
 				>
-					<div class="flex items-center">
-						<Trash
-							class="mr-3 size-4 text-gray-600 group-hover:text-red-600 transition-colors duration-150"
-						/>
+					<div class="flex items-center gap-2">
+						<TrashIcon isHovered={trashHovered} strokeWidth={3} size={12} class="opacity-80" />
 						<span class="group-hover:text-red-700 transition-colors duration-150"> Delete </span>
 					</div>
 				</ContextMenu.Item>

@@ -21,7 +21,17 @@
 	);
 </script>
 
-<content class="h-full w-full p-4 overflow-y-auto flex flex-col gap-4">
+<content class="h-full w-full p-4 relative flex flex-col gap-4 overflow-clip overflow-y-clip">
+	<div
+		class="absolute z-20 h-full w-full flex justify-center gap-2 items-center bg-white/80 dark:bg-black/80 backdrop-blur-2xl"
+	>
+		<p class="text-xl font-semibold">Extensions</p>
+		<p
+			class="text-xs px-3 select-none !font-sans h-5 flex justify-center items-center rounded-xl bg-orange-600 hover:bg-orange-500 duration-200 cursor-pointer text-white"
+		>
+			alpha
+		</p>
+	</div>
 	<div class="flex justify-between items-center w-full min-h-16 flex-nowrap gap-2">
 		<div class="flex flex-col gap-1" in:fade={{ duration: 400 }} out:fade={{ duration: 200 }}>
 			<div class="flex gap-2 items-center">

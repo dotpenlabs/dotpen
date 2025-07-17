@@ -6,6 +6,9 @@
 	import { goto } from '$app/navigation';
 	import type { Bookmark } from '$/lib/types';
 	import { pb } from '$/lib';
+	import TrashIcon from '../movingicons/trash.svelte';
+
+	let trashHovered = $state(false);
 
 	let {
 		data: item = {
@@ -20,12 +23,14 @@
 			created: new Date()
 		},
 		index = 0,
+		filetoken = '',
 		removeItem,
-		filetoken = ''
+		removeItemCallback
 	}: {
 		data: Bookmark;
 		index: number;
 		removeItem: () => void;
+		removeItemCallback?: (e: Event) => void;
 		filetoken: string;
 	} = $props();
 </script>
@@ -41,6 +46,7 @@
 			class="text-wrap group cursor-pointer bg-white w-full sm:w-64 overflow-hidden h-min dark:bg-stone-950 rounded-xl p-3 sm:p-5 shadow-sm hover:shadow-lg dark:shadow-none border border-zinc-200 dark:border-stone-700/50 duration-300 hover:scale-102 active:scale-98"
 			in:fly|global={{ y: 20, duration: 300, delay: Math.min(index * 50, 600) }}
 			out:fly|global={{ y: 10, duration: 150 }}
+			onoutroend={(e) => removeItemCallback(e)}
 			onmouseenter={(e) => {
 				e.currentTarget.style.transform = `rotate(${Math.random() < 0.5 ? '-' : ''}${Math.floor(Math.random() * 1.5)}deg)`;
 			}}
@@ -126,6 +132,12 @@
 		"
 		>
 			<ContextMenu.Item
+				onmouseenter={(e) => {
+					trashHovered = true;
+				}}
+				onmouseleave={(e) => {
+					trashHovered = false;
+				}}
 				onclick={() => {
 					removeItem();
 				}}
@@ -151,8 +163,8 @@
 				active:scale-[0.98]
 			"
 			>
-				<div class="flex items-center">
-					<Trash
+				<div class="flex items-center gap-2">
+					<!-- <Trash
 						class="
 						mr-3 
 						size-4 
@@ -161,7 +173,8 @@
 						transition-colors
 						duration-150
 					"
-					/>
+					/> -->
+					<TrashIcon isHovered={trashHovered} strokeWidth={3} class="opacity-80" size={12} />
 					<span class="group-hover:text-red-700 transition-colors duration-150"> Delete </span>
 				</div>
 			</ContextMenu.Item>

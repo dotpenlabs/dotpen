@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"dotpen.co/server/pkg/lib"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/patrickmn/go-cache"
 	"github.com/pocketbase/pocketbase/core"
@@ -113,8 +114,7 @@ func UseDefault(u string) (*MetaData, error) {
 	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	req.Header.Set("Connection", "keep-alive")
 
-	cl := &http.Client{Timeout: 10 * time.Second}
-	r, err := cl.Do(req)
+	r, err := lib.UseProxy(req)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +249,7 @@ func UseTwitter(u string) (*MetaData, error) {
 	}
 
 	if strings.Contains(pu.Path, "/status/") {
-		r, err := http.Get("https://publish.twitter.com/oembed?url=" + url.QueryEscape(u))
+		r, err := lib.UseProxy(&http.Request{URL: &url.URL{Scheme: "https", Host: "publish.twitter.com", Path: "/oembed", RawQuery: "url=" + url.QueryEscape(u)}})
 		if err != nil {
 			return nil, err
 		}
@@ -295,8 +295,7 @@ func UseTwitter(u string) (*MetaData, error) {
 }
 
 func UseYouTube(u string) (*MetaData, error) {
-	oembedURL := "https://www.youtube.com/oembed?url=" + url.QueryEscape(u) + "&format=json"
-	resp, err := http.Get(oembedURL)
+	resp, err := lib.UseProxy(&http.Request{URL: &url.URL{Scheme: "https", Host: "www.youtube.com", Path: "/oembed", RawQuery: "url=" + url.QueryEscape(u) + "&format=json"}})
 	if err == nil && resp.StatusCode == 200 {
 		defer resp.Body.Close()
 
@@ -357,7 +356,7 @@ func UseYouTube(u string) (*MetaData, error) {
 }
 
 func UseTikTok(u string) (*MetaData, error) {
-	r, err := http.Get("https://www.tiktok.com/oembed?url=" + url.QueryEscape(u))
+	r, err := lib.UseProxy(&http.Request{URL: &url.URL{Scheme: "https", Host: "www.tiktok.com", Path: "/oembed", RawQuery: "url=" + url.QueryEscape(u)}})
 	if err != nil {
 		return nil, err
 	}
@@ -381,7 +380,7 @@ func UseTikTok(u string) (*MetaData, error) {
 }
 
 func UseSpotify(u string) (*MetaData, error) {
-	r, err := http.Get("https://embed.spotify.com/oembed/?url=" + url.QueryEscape(u))
+	r, err := lib.UseProxy(&http.Request{URL: &url.URL{Scheme: "https", Host: "embed.spotify.com", Path: "/oembed", RawQuery: "url=" + url.QueryEscape(u)}})
 	if err != nil {
 		return nil, err
 	}
