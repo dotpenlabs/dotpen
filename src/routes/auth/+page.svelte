@@ -97,7 +97,7 @@
 </svelte:head>
 
 <content
-	class="bg-amber-50/65 h-full w-full absolute flex flex-col justify-center items-center gap-6"
+	class="bg-[#fcf6ea] h-full w-full absolute flex flex-col justify-center items-center gap-6"
 >
 	<p class="italic text-4xl text-black/65 text-center font-medium">
 		Be the <span class="text-black">superhero</span><br /> of your
