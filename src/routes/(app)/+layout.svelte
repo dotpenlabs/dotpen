@@ -1,3 +1,11 @@
+<script lang="ts" module>
+	declare global {
+		interface Window {
+			SetHydrating: (id: string, value: boolean) => void;
+		}
+	}
+</script>
+
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
 	import type { LayoutData } from '../$types';
@@ -44,10 +52,40 @@
 		newCollection: false,
 		showSidebar: true,
 		forceHidden: false,
-		returnToClosed: false
+		returnToClosed: false,
+		collection_creating: false,
+		collection_preview: ''
 	});
 
 	let collections = $state([]);
+	let isHydrating = $state(false);
+
+	const hydrationStatus: Record<string, boolean> = {};
+	const hydrationTimers: Record<string, NodeJS.Timeout> = {};
+
+	const COLLECTIONS_CACHE_KEY = 'dotpen_collections';
+
+	function GetCollectionsCache() {
+		try {
+			const cached = localStorage.getItem(COLLECTIONS_CACHE_KEY);
+			if (cached) {
+				const parsed = JSON.parse(cached);
+				if (Array.isArray(parsed)) {
+					collections = parsed;
+				}
+			}
+		} catch (e) {
+			console.error('Failed to load collections from cache', e);
+		}
+	}
+
+	function SaveCollectionCache(cols: any[]) {
+		try {
+			localStorage.setItem(COLLECTIONS_CACHE_KEY, JSON.stringify(cols));
+		} catch (e) {
+			console.error('Failed to save collections to cache', e);
+		}
+	}
 
 	async function fetchCollections() {
 		if (!pb.authStore.isValid) return;
@@ -58,19 +96,24 @@
 				filter: `user = "${userId}" && name != "system_inbox"`,
 				sort: '-created'
 			});
-			collections = result.map((col) => ({
+			const freshCollections = result.map((col) => ({
 				id: col.id,
 				name: col.name,
 				icon: Folder,
 				url: `/${col.id}`
 			}));
+
+			if (JSON.stringify(freshCollections) !== JSON.stringify(collections)) {
+				collections = freshCollections;
+				SaveCollectionCache(freshCollections);
+			}
 		} catch (err) {
 			console.error('Failed to fetch collections', err);
 			toast.error('Failed to load collections!');
 		}
 	}
 
-	function updateBrowserTitle() {
+	function BrowserTitleTick() {
 		const currentPath = page.url.pathname;
 		const currentCollection = collections.find((c) => c.url === currentPath);
 		document.title = currentCollection ? `${currentCollection.name} • Dotpen` : 'Dotpen';
@@ -93,14 +136,39 @@
 		}
 
 		await pb.collection('users').authRefresh();
-		await fetchCollections();
 
-		updateBrowserTitle();
+		GetCollectionsCache();
+		fetchCollections();
+
+		BrowserTitleTick();
+
+		window.SetHydrating = (id: string, value: boolean) => {
+			console.log(hydrationStatus);
+			if (value) {
+				if (hydrationTimers[id]) return;
+
+				hydrationTimers[id] = setTimeout(() => {
+					delete hydrationTimers[id];
+					hydrationStatus[id] = true;
+
+					const anyStillHydrating = Object.values(hydrationStatus).some((v) => v);
+					isHydrating = anyStillHydrating;
+				}, 125);
+			} else {
+				if (hydrationTimers[id]) {
+					clearTimeout(hydrationTimers[id]);
+					delete hydrationTimers[id];
+				}
+
+				hydrationStatus[id] = false;
+
+				const anyStillHydrating = Object.values(hydrationStatus).some((v) => v);
+				isHydrating = anyStillHydrating;
+			}
+		};
 	});
 
-	$effect(() => {
-		updateBrowserTitle();
-	});
+	$effect(BrowserTitleTick);
 </script>
 
 <svelte:window
@@ -134,7 +202,15 @@
 												? 'Howdy, ' + pb.authStore.record.name.split(' ')[0] + '!'
 												: 'Howdy!'}
 										</p>
-										<p class="text-xs opacity-65">All changes are synchronized with the cloud.</p>
+										{#if !isHydrating}
+											<p in:fly={{ duration: 400, y: 5 }} class="text-xs opacity-65">
+												All changes are synchronized with the cloud.
+											</p>
+										{:else}
+											<p in:fly={{ duration: 350, y: -10 }} class="text-xs opacity-65">
+												Changes are currently being synced...
+											</p>
+										{/if}
 									</div>
 									<div class="flex items-center gap-3 w-full opacity-50 my-2">
 										<p class="text-xs">Menu</p>
@@ -173,7 +249,7 @@
 											states.newCollection = !states.newCollection;
 										}}
 									>
-										{#if collections.length === 0 && !states.newCollection}
+										{#if collections.length === 0 && !states.newCollection && !states.collection_creating}
 											<div
 												in:fade={{ duration: 500 }}
 												class="flex flex-col h-full w-full gap-2 justify-center items-center opacity-65"
@@ -196,6 +272,7 @@
 													try {
 														await pb.collection('collections').delete(collection.id);
 														collections = collections.filter((c) => c.id !== collection.id);
+														SaveCollectionCache(collections);
 														if (page.url.pathname.includes(collection.id)) {
 															goto('/');
 														}
@@ -207,6 +284,17 @@
 												}}
 											/>
 										{/each}
+										{#if states.collection_creating}
+											<div
+												class="flex items-center relative gap-2 w-full duration-200 ring-1 ring-stone-200 dark:ring-stone-800 bg-stone-100 dark:bg-stone-800 rounded-lg px-2 py-1 animate-pulse opacity-70"
+											>
+												<Folder class="size-4 opacity-80" />
+												<span
+													class="w-full text-sm p-1 text-left m-0 rounded-lg bg-transparent border-none focus:outline-none focus:ring-0"
+													>{states.collection_preview || 'Creating...'}</span
+												>
+											</div>
+										{/if}
 										{#if states.newCollection}
 											<div
 												transition:flyAndScale={{ duration: 100, y: -5 }}
@@ -230,6 +318,8 @@
 																	return;
 																}
 																try {
+																	states.collection_creating = true;
+																	states.collection_preview = target.value;
 																	const userId = pb.authStore.model?.id;
 																	const newCol = await pb.collection('collections').create({
 																		name: target.value,
@@ -241,9 +331,14 @@
 																		icon: Folder,
 																		url: `/${newCol.id}`
 																	});
+																	SaveCollectionCache(collections);
+																	states.collection_creating = false;
+																	states.collection_preview = '';
 																	goto(`/${newCol.id}`);
 																	toast.info('Collection created!');
 																} catch (err) {
+																	states.collection_creating = false;
+																	states.collection_preview = '';
 																	console.error('Failed to create collection', err);
 																	toast.error('Failed to create collection!');
 																}
