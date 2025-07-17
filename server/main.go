@@ -64,16 +64,18 @@ func main() {
 		return e.Next()
 	})
 
-	app.OnRecordUpdate("bookmarks").BindFunc(func(e *core.RecordEvent) error {
+	app.OnRecordUpdateExecute("bookmarks").BindFunc(func(e *core.RecordEvent) error {
 		app.Logger().Debug("RecordUpdate: bookmarks", "action", "update")
 
 		if e.Record.GetBool("deleted") {
 			app.Logger().Info("RecordUpdate: bookmarks", "action", "delete")
 
 			e.Record.Set("label", "")
-			e.Record.Set("url", "")
+			e.Record.Set("link", "")
 			e.Record.Set("favicon", "")
 			e.Record.Set("cover", "")
+
+			app.Save(e.Record)
 		}
 		return e.Next()
 	})
@@ -82,7 +84,7 @@ func main() {
 		app.Logger().Debug("Cron: Remove deleted bookmarks")
 
 		records, err := app.FindAllRecords("bookmarks",
-			dbx.NewExp("deleted = 'true'"),
+			dbx.NewExp("deleted = true"),
 		)
 
 		if err != nil {
@@ -90,11 +92,21 @@ func main() {
 			return
 		}
 
-		cutoff, _ := types.ParseDateTime(time.Now().Add(-31 * 24 * time.Hour))
+		app.Logger().Debug("Cron: Found deleted bookmarks", "count", len(records))
+
+		cutoff, err := types.ParseDateTime(time.Now().Add(24 * time.Hour))
+		if err != nil {
+			app.Logger().Error("Cron: Remove deleted bookmarks", "error", err.Error())
+			return
+		}
 
 		for _, r := range records {
-			if r.GetDateTime("updated").Before(cutoff) {
-				app.Delete(r)
+			if r.GetDateTime("updated").Before(cutoff) || r.GetDateTime("created").Before(cutoff) {
+				app.Logger().Debug("Cron: Deleting bookmark", "id", r.Id)
+				err := app.Delete(r)
+				if err != nil {
+					app.Logger().Error("Cron: Deleting bookmark", "id", r.Id, "error", err.Error())
+				}
 			}
 		}
 	})
