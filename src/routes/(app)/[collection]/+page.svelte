@@ -1,312 +1,353 @@
 <script lang="ts">
+	import { onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import LinkComponent from '$/lib/components/item/link.svelte';
-	import type { LinkItem } from '$/lib/components/item/types';
-	import { toast } from 'svelte-sonner';
-	import { onDestroy, onMount, tick } from 'svelte';
-	import type { PageData } from './$types';
+
 	import { pb } from '$/lib';
 	import { page } from '$app/state';
+	import { toast } from 'svelte-sonner';
 
-	let Marks: LinkItem[] = $state([]);
+	import type { PageData } from './$types';
+	import type { RecordModel } from 'pocketbase';
+	import type { Bookmark } from '$/lib/types';
+
+	import Link from '$/lib/components/item/link.svelte';
+	import Loading from '$/lib/components/loading.svelte';
+
 	let { data: pageData }: { data: PageData } = $props();
-	let pasteTries = 0;
-
-	$effect(() => {
-		(async () => {
-			if (pageData.collection) {
-				if (pageData.collection == 'inbox') {
-					try {
-						const resp = await pb
-							.collection('collections')
-							.getFirstListItem("name = 'system_inbox'");
-						pageData.collection = resp.id;
-					} catch {
-						const resp = await pb.collection('collections').create({
-							name: 'system_inbox',
-							user: pb.authStore.record.id
-						});
-
-						pageData.collection = resp.id;
-					}
-				}
-				await fetchBookmarks();
-			}
-		})();
-	});
+	let url = $state('');
+	let colId = $state('');
 
 	let Macy: any;
 	let masonry: any | undefined;
 
-	async function urlToFile(url: string, filename: string): Promise<File | null> {
-		try {
-			const res = await fetch(url);
-			if (!res.ok) return null;
-			const blob = await res.blob();
-			const ext = filename.split('.').pop() || 'png';
-			return new File([blob], filename, { type: blob.type || `image/${ext}` });
-		} catch {
-			return null;
+	let global = $state('show') as 'load' | 'show' | 'error';
+	let bookmarks: Bookmark[] = $state([]);
+	let token = $state('');
+
+	async function main(): Promise<void> {
+		if (url === page.url.pathname) {
+			console.info('[main] url has not changed, aborting');
+			return;
 		}
+
+		url = page.url.pathname;
+
+		console.info(`[main] started process (${page.url.pathname})`);
+		colId = pageData.collection;
+
+		if (colId === 'inbox') {
+			console.info('[head] This is a system inbox, additional processing is required.');
+			if (localStorage.getItem('inbox:id')) {
+				colId = localStorage.getItem('inbox:id');
+			} else {
+				colId = await pb
+					.collection('collections')
+					.getFirstListItem("name = 'system_inbox'")
+					.then((e: RecordModel) => {
+						return e.id;
+					});
+
+				localStorage.setItem('inbox:id', colId);
+			}
+		}
+
+		let bmcache = (await JSON.parse(localStorage.getItem(colId + ':cache') || '[]')) as Bookmark[];
+		const bmheartbeat = bmcache[bmcache.length - 1]?.updated;
+
+		console.info('[head] connected to ' + colId);
+		console.info('[head] last heartbeat was sent ' + (bmheartbeat ? 'at ' + bmheartbeat : 'never'));
+		console.info('[head] bookmark cache is ' + (bmcache ? 'available' : 'unavailable'));
+
+		const getBase64 = async (bm: Bookmark, path: string): Promise<string | null> => {
+			if (!path) return null;
+			console.log('[debug] bm.favicon:', bm.favicon);
+			console.log('[debug] path:', path);
+			console.log('[debug] pb.baseURL:', pb.baseURL);
+			console.log('[debug] pb.authStore.token:', pb.authStore.token);
+			console.log('[debug] bm.id:', bm.id);
+			console.log('[debug] colId:', colId);
+			console.log('[debug] bm.cover:', bm.cover);
+
+			try {
+				const r = await fetch(
+					`${pb.baseURL}api/files/bookmarks/${bm.id}/${path}?token=${pb.authStore.token}`
+				);
+				const blob = await r.blob();
+				return await new Promise<string>((resolve, reject) => {
+					const reader = new FileReader();
+					reader.onloadend = () => resolve(reader.result as string);
+					reader.onerror = reject;
+					reader.readAsDataURL(blob);
+				});
+			} catch (e) {
+				console.warn('[bookmark:sync] Failed to convert image to base64', path, e);
+				return null;
+			}
+		};
+
+		const useLocalImage = async (data: Bookmark[]): Promise<Bookmark[]> => {
+			await Promise.all(
+				data.map(async (bm) => {
+					if (bm.favicon) {
+						bm._favicon_base64 = await getBase64(bm, bm.favicon);
+					}
+					if (bm.cover) {
+						bm._cover_base64 = await getBase64(bm, bm.cover);
+					}
+				})
+			);
+			return data;
+		};
+
+		if (!bmcache) {
+			window.SetHydrating('collection', true);
+
+			global = 'load';
+			console.info('[head:download] No cache available, downloading...');
+			localStorage.setItem(colId + ':cache', JSON.stringify([]));
+
+			const remote = (await pb.collection('bookmarks').getFullList({
+				filter: `collection = "${colId}" && deleted = false`,
+				sort: '-created'
+			})) as Bookmark[];
+
+			await useLocalImage(remote);
+			console.info('[head:bookmarks] Downloaded ' + remote.length + ' bookmarks');
+
+			localStorage.setItem(colId + ':cache', JSON.stringify(remote));
+			console.info('[head:download] Downloaded ' + remote.length + ' bookmarks');
+			window.SetHydrating('collection', false);
+		} else {
+			(async () => {
+				window.SetHydrating('collection', true);
+				console.info('[head:bookmarks] Downloading latest bookmarks');
+
+				const local = bmcache;
+				const remote = (await pb.collection('bookmarks').getFullList({
+					filter: `collection = "${colId}" && updated > '${local.at(-1)?.updated || new Date(0).toISOString()}'`,
+					sort: '-created'
+				})) as Bookmark[];
+
+				console.info('[head:bookmarks] Downloaded ' + remote.length + ' bookmarks');
+
+				await useLocalImage(remote);
+				const ubi = new Map([...local, ...remote].map((bm) => [bm.id, bm]));
+				bmcache = Array.from(ubi.values()).filter((bm) => !bm.deleted);
+				localStorage.setItem(colId + ':cache', JSON.stringify(bmcache));
+
+				console.info('[head:bookmarks] Updated cache has ' + bmcache.length + ' bookmarks');
+				window.SetHydrating('collection', false);
+			})();
+		}
+
+		// - finishing up -
+		bookmarks = bmcache;
+		token = await pb.files.getToken();
+
+		window.SetHydrating('collection', false);
 	}
 
-	import type { RecordModel } from 'pocketbase';
-
-	interface LinkRecordItem extends RecordModel {
-		label: string;
-		link: string;
-		favicon: string;
-		cover: string;
-	}
-
-	async function fetchBookmarks() {
-		const result = await pb.collection('bookmarks').getFullList({
-			filter: `collection = "${pageData.collection}"`,
-			sort: '-created'
-		});
-		const fileToken = await pb.files.getToken();
-		Marks = result.map((bm: LinkRecordItem) => ({
-			label: bm.label,
-			icon: pb.files.getURL(bm, bm.favicon, {
-				thumb: '50x50',
-				token: fileToken
-			}),
-			url: bm.link,
-			cover: pb.files.getURL(bm, bm.cover, {
-				thumb: '0x200',
-				token: fileToken
-			}),
-			date: bm.created,
-			id: bm.id
-		}));
-	}
-
-	onMount(async () => {
-		Macy = (await import('macy')).default as any;
-		await fetchBookmarks();
-	});
-
-	async function initMasonry() {
+	async function UseMasonry(): Promise<void> {
 		await tick();
+
+		if (!Macy) {
+			const macyModule = await import('macy');
+			Macy = macyModule.default;
+		}
+
 		const container = document.querySelector('#main-content');
 		if (!container) return;
 
 		if (masonry) {
-			masonry.remove();
-		}
-
-		var masonry = new Macy({
-			container: '#main-content',
-			trueOrder: true,
-			waitForImages: false,
-			useOwnImageLoader: false,
-			useContainerForBreakpoints: true,
-			mobileFirst: true,
-			columns: 1,
-			margin: {
-				y: 16,
-				x: '2%'
-			},
-			breakAt: {
-				1400: 5,
-				1100: 4,
-				800: 3,
-				520: 2
+			try {
+				masonry.remove();
+			} catch (e) {
+				console.warn('Error removing masonry', e);
 			}
-		});
-
-		setInterval(() => {
-			masonry?.recalculate();
-		}, 1000);
-	}
-
-	$effect(() => {
-		if (Marks.length > 0) {
-			initMasonry();
 		}
-	});
 
-	async function fetchImageFileThroughProxy(url: string, filename: string): Promise<File | null> {
 		try {
-			const res = await fetch(pb.baseURL + `api/proxy?url=${encodeURIComponent(url)}`, {
-				headers: {
-					Authorization: `Bearer ${pb.authStore.token}`
-				}
+			masonry = new Macy({
+				container,
+				trueOrder: true,
+				waitForImages: false,
+				useOwnImageLoader: false,
+				useContainerForBreakpoints: true,
+				mobileFirst: true,
+				columns: 1,
+				margin: { y: 16, x: '2%' },
+				breakAt: { 1400: 5, 1100: 4, 800: 3, 520: 2 }
 			});
-			if (!res.ok) return null;
-			const blob = await res.blob();
-			const ext = filename.split('.').pop() || 'png';
-			return new File([blob], filename, { type: blob.type || `image/${ext}` });
+
+			requestAnimationFrame(() => masonry.recalculate());
 		} catch (e) {
-			console.error('Failed to fetch image through proxy', e);
-			return null;
+			console.error('Error initializing masonry', e);
 		}
 	}
 
-	const isValidUrl = (url: string): boolean => {
-		const urlRegex =
-			/(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/;
-		return urlRegex.test(url);
-	};
+	async function newBookmark(url: string): Promise<Error | void> {
+		// - Helpers & Functions -
+		const urlF = (input: string): string | null => {
+			if (/\s/.test(input)) return null;
 
-	const normalizeUrl = (url: string): string => {
-		const trimmed = url.trim();
-		return trimmed.startsWith('http://') || trimmed.startsWith('https://')
-			? trimmed
-			: `https://${trimmed}`;
-	};
-
-	async function addBookmark(requestUrl: string): Promise<void> {
-		if (!requestUrl?.trim()) return;
-		const startTime = performance.now();
-
-		const isDuplicate = (url: string): boolean => {
-			return Marks.some((mark) => mark.url === url);
-		};
-
-		const confirmDuplicate = (): Promise<boolean> => {
-			return new Promise((resolve) => {
-				toast.warning('Duplicate item found', {
-					description: 'This link already exists. Add anyway?',
-					action: {
-						label: 'Add',
-						onClick: () => resolve(true)
-					}
-				});
-			});
-		};
-
-		const showWarningToast = (bookmark: LinkItem): void => {
-			const hasTitle = bookmark.label !== bookmark.url;
-
-			toast.warning('Link has been captured', {
-				description: hasTitle
-					? `Added: "${bookmark.label}" but some data might be missing`
-					: "We couldn't get the title of the link. It can be harder to find it back.",
-				action: {
-					label: 'Remove',
-					onClick: async () => {
-						await pb.collection('bookmarks').delete(bookmark.id);
-						await fetchBookmarks();
-					}
+			try {
+				let uri = new URL(input);
+				if (!uri.protocol.startsWith('http')) {
+					uri = new URL('https://' + input);
 				}
-			});
-		};
+				uri.protocol = 'https:';
 
-		const showSuccessToast = (bookmark: LinkItem, startTime: number): void => {
-			const hasTitle = Boolean(bookmark.label && bookmark.label !== bookmark.url);
+				const hostnameParts = uri.hostname.split('.');
+				const tld = hostnameParts[hostnameParts.length - 1];
+				if (!tld || tld.length < 2) return null;
 
-			if (!hasTitle) {
-				showWarningToast(bookmark);
-			} else {
-				const duration = (performance.now() - startTime).toFixed(2);
-				toast.success('Link has been captured!', {
-					description: `Added: "${bookmark.label}" in ${duration}ms`
-				});
+				return uri.toString();
+			} catch {
+				try {
+					const uri = new URL('https://' + input);
+
+					const hostnameParts = uri.hostname.split('.');
+					const tld = hostnameParts[hostnameParts.length - 1];
+					if (!tld || tld.length < 2) return null;
+
+					return uri.toString();
+				} catch {
+					return null;
+				}
 			}
 		};
 
-		const formattedUrl = normalizeUrl(requestUrl);
-		if (!isValidUrl(formattedUrl)) {
-			toast.error('Invalid link', {
-				description: 'The link you`ve tried to add was invalid.'
+		const fileF = async (
+			url: string,
+			filename: string
+		): Promise<{ file: File | null; base64: string | null }> => {
+			try {
+				const r = await fetch(`${pb.baseURL}api/proxy?url=${encodeURIComponent(urlF(url))}`, {
+					headers: { Authorization: `Bearer ${pb.authStore.token}` }
+				});
+				if (!r.ok) {
+					console.warn('[bookmark:proxy] 1 asset download did not succeed', r.status);
+					return { file: null, base64: null };
+				}
+
+				const blob = await r.blob();
+				const file = new File([blob], filename, {
+					type: blob.type || `image/${filename.split('.').pop() || 'png'}`
+				});
+
+				const base64 = await new Promise<string>((resolve, reject) => {
+					const reader = new FileReader();
+					reader.onloadend = () => resolve(reader.result as string);
+					reader.onerror = reject;
+					reader.readAsDataURL(blob);
+				});
+
+				return { file, base64 };
+			} catch (e) {
+				console.info('[bookmark:error] 1 asset download did not succeed', e);
+				return { file: null, base64: null };
+			}
+		};
+
+		// - Validation and setup -
+
+		url = urlF(url);
+
+		if (!url) {
+			console.info('[bookmark:failure] Tried to add non-existing URL:', url);
+			toast.error('Heads up!', {
+				description: "That doesn't look like a valid URL"
 			});
 			return;
 		}
 
-		if (isDuplicate(formattedUrl)) {
-			const proceed = await confirmDuplicate();
-			if (!proceed) return;
-		}
-
-		const loadingToast = toast.loading('Capturing link', {
-			description: 'This may take a few seconds...'
+		const loading = toast.loading('Working on it!', {
+			description: 'This could take a few seconds...'
 		});
 
-		try {
-			const response = await pb.send('/api/crawl', {
-				query: {
-					url: formattedUrl
-				}
-			});
+		// - Crawling the link -
 
-			const data = await response;
+		const crawl = (await pb.send('/api/crawl', {
+			method: 'GET',
+			query: { url }
+		})) as {
+			title: string;
+			favicon?: string;
+			image?: string;
+			url: string;
+		};
 
-			['favicon', 'image'].forEach((key) => {
-				if (typeof data?.[key] === 'string' && data[key].startsWith('/')) {
-					data[key] = formattedUrl + data[key];
-				}
-			});
+		console.info('[bookmark:crawl] Result', crawl);
 
-			const faviconFile = data.favicon
-				? await fetchImageFileThroughProxy(data.favicon, 'favicon.png')
-				: null;
-			const coverFile = data.image
-				? await fetchImageFileThroughProxy(data.image, 'cover.png')
-				: null;
+		// - Capturing metadata and images -
 
-			const newBookmark: LinkItem = {
-				label: data.title || formattedUrl,
-				icon: '',
-				url: formattedUrl,
-				cover: '',
-				date: new Date().toISOString()
-			};
-
-			window.dispatchEvent(new CustomEvent('network_activity:start'));
-
-			const formData: any = {
-				label: newBookmark.label,
-				link: newBookmark.url,
-				collection: pageData.collection,
-				created: new Date().toISOString()
-			};
-			if (faviconFile) formData.favicon = faviconFile;
-			if (coverFile) formData.cover = coverFile;
-
-			const bookmark = await pb.collection('bookmarks').create(formData);
-			await fetchBookmarks();
-			await tick();
-			masonry?.recalculate(true);
-
-			if (!Boolean(newBookmark.label && newBookmark.label !== newBookmark.url)) {
-				showWarningToast(bookmark as unknown as LinkItem);
-			} else {
-				showSuccessToast(bookmark as unknown as LinkItem, startTime);
+		['favicon', 'image'].forEach(async (key) => {
+			if (crawl[key].startsWith('./')) {
+				crawl[key] = crawl[key].replace('./', '/');
 			}
-		} catch (error) {
-			console.error('Failed to add bookmark:', error);
-			toast.error('We failed to capture this link...', {
-				description: 'Our crawlers are not able to access this link.'
-			});
-		} finally {
-			window.dispatchEvent(new CustomEvent('network_activity:stop'));
-			toast.dismiss(loadingToast);
-		}
+			if (crawl[key].startsWith('/')) {
+				crawl[key] = new URL(crawl.url).origin + crawl[key];
+			}
+		});
+
+		const { file: crawl_favicon, base64: base64_favicon } = await fileF(
+			crawl.favicon,
+			'favicon.png'
+		);
+		const { file: crawl_image, base64: base64_image } = await fileF(crawl.image, 'cover.png');
+
+		console.info('[bookmark:crawl] Assets downloaded');
+
+		// - Storing data -
+
+		const form: Record<string, any> = {
+			label: crawl.title,
+			link: url,
+			collection: colId,
+			user: pb.authStore.record.id,
+			created: new Date().toISOString()
+		};
+
+		if (crawl_favicon) form.favicon = crawl_favicon;
+		if (crawl_image) form.cover = crawl_image;
+
+		const record = (await pb.collection('bookmarks').create(form)) as Bookmark;
+
+		if (base64_favicon) record._favicon_base64 = base64_favicon;
+		if (base64_image) record._cover_base64 = base64_image;
+
+		// - Finishing up -
+
+		bookmarks.unshift(record);
+		localStorage.setItem(colId + ':cache', JSON.stringify(bookmarks));
+		toast.dismiss(loading);
 	}
 
-	function removeBookmark(item: LinkItem) {
-		let confirmed = true;
-
-		const bm = Marks.find((mark) => mark.id === item.id);
+	async function removeBookmark(item: Bookmark) {
+		const bm = bookmarks.find((m) => m.id === item.id);
 		if (!bm) return;
 
-		Marks = Marks.filter((mark) => mark.id !== item.id);
-		masonry?.recalculate(true);
+		bookmarks = bookmarks.filter((m) => m.id !== item.id);
+		await tick();
 
-		const confirmDelete = () => {
-			(async () => {
-				if (!confirmed) return;
-				try {
-					if (bm.id) {
-						await pb.collection('bookmarks').delete(bm.id);
-						await fetchBookmarks();
-					}
-				} catch (err) {
-					console.error('Failed to delete bookmark', err);
-					toast.error('Failed to delete bookmark!');
+		requestAnimationFrame(() => {
+			masonry?.recalculate(true);
+		});
+
+		let confirmed = true;
+
+		const confirmDelete = async () => {
+			if (!confirmed) return;
+			try {
+				if (bm.id) {
+					await pb.collection('bookmarks').update(bm.id, {
+						deleted: true
+					});
 				}
-			})();
+			} catch (err) {
+				console.error('Failed to delete bookmark', err);
+				toast.error('Failed to delete bookmark!');
+			}
 		};
 
 		toast.info('Link has been removed', {
@@ -316,80 +357,81 @@
 				onClick: async () => {
 					confirmed = false;
 					try {
-						Marks = [bm, ...Marks];
-						masonry?.recalculate(true);
-						await fetchBookmarks();
+						bookmarks = [bm, ...bookmarks];
+						await tick();
+						requestAnimationFrame(() => {
+							masonry?.recalculate(true);
+							main();
+						});
+						await main();
 					} catch (err) {
 						console.error('Failed to undo delete', err);
 						toast.error('Failed to restore bookmark!');
 					}
 				}
 			},
-
 			onAutoClose: () => confirmDelete(),
 			onDismiss: () => confirmDelete()
 		});
 	}
 
-	onDestroy(() => {
-		masonry?.remove();
+	onMount(async () => {
+		await main();
+		if (bookmarks.length > 0) {
+			UseMasonry();
+		}
+	});
+	$effect(() => void main());
+	$effect(() => {
+		if (bookmarks.length > 0) {
+			UseMasonry();
+		}
 	});
 </script>
 
-<svelte:window
-	onpaste={(e) => {
-		const text = e.clipboardData.getData('text/plain');
-		const textnrml = normalizeUrl(text);
+<!-- TODO: Maybe cool effect because this release does not have success toast, that the newly added bookmark drops in its place via a massive scale transition -->
 
-		if (text && isValidUrl(textnrml)) {
-			addBookmark(textnrml);
-		} else {
-			if (pasteTries > 2) {
-				toast.warning('Pastedata is not valid!', {
-					description: "You've tried to paste: " + text
-				});
-				return;
-			}
+<svelte:window onpaste={(e) => newBookmark(e.clipboardData?.getData('text/plain') || '')} />
 
-			console.log('Invalid user action, probably not meant.');
-			pasteTries++;
-
-			setTimeout(() => {
-				pasteTries = 0;
-			}, 10000);
-		}
-	}}
-/>
-
-<content
-	class="h-full w-full overflow-y-auto flex flex-col gap-2 justify-start items-start p-1 pr-6"
-	role="presentation"
-	ondragover={(e: DragEvent) => {
-		e.preventDefault();
-	}}
-	ondrop={(e: DragEvent) => {
-		e.preventDefault();
-		addBookmark(e.dataTransfer?.getData('text/plain'));
-	}}
->
-	{#if Marks.length === 0}
-		<div
-			in:fade={{ duration: 500, delay: 750 }}
-			class="flex flex-col h-full w-full gap-2 justify-center items-center opacity-65"
-		>
-			<img src="/logo.svg" alt="Dotpen" class="size-6 invert dark:invert-0" />
-			<div class="text-center">
-				<p class="text-lg font-medium">This collection is tidy!</p>
-				<p class="text-xs w-64">
-					You don't have any bookmarks saved here, drag and drop some links to get it to fill!
-				</p>
+{#if global === 'load'}
+	<content class="h-full w-full flex justify-center items-center">
+		<Loading />
+	</content>
+{:else if global === 'error'}
+	<content class="h-full w-full flex justify-center items-center">
+		<p>Something went wrong, please try again later.</p>
+	</content>
+{:else}
+	<content
+		class="h-full w-full overflow-y-auto flex flex-col gap-2 justify-start items-start p-1 pr-6"
+		role="presentation"
+		ondragover={(e: DragEvent) => {
+			e.preventDefault();
+		}}
+		ondrop={(e: DragEvent) => {
+			e.preventDefault();
+			newBookmark(e.dataTransfer?.getData('text/plain'));
+		}}
+	>
+		{#if bookmarks.length === 0}
+			<div
+				in:fade={{ duration: 500, delay: 750 }}
+				class="flex flex-col h-full w-full gap-2 justify-center items-center opacity-65"
+			>
+				<img src="/logo.svg" alt="Dotpen" class="size-6 invert dark:invert-0" />
+				<div class="text-center">
+					<p class="text-lg font-medium">This collection is tidy!</p>
+					<p class="text-xs w-64">
+						You don't have any bookmarks saved here, drag and drop some links to get it to fill!
+					</p>
+				</div>
 			</div>
-		</div>
-	{:else}
-		<div id="main-content" class="w-full min-h-full h-fit">
-			{#each Marks as item, idx}
-				<LinkComponent removeItem={() => removeBookmark(item)} data={item} index={idx} />
-			{/each}
-		</div>
-	{/if}
-</content>
+		{:else}
+			<div id="main-content" class="w-full min-h-full h-fit">
+				{#each bookmarks as item, idx (item.id)}
+					<Link removeItem={() => removeBookmark(item)} data={item} index={idx} filetoken={token} />
+				{/each}
+			</div>
+		{/if}
+	</content>
+{/if}

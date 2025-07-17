@@ -129,21 +129,7 @@
 	}
 
 	onMount(async () => {
-		loading = false;
-
-		if (!pb.authStore.isValid) {
-			goto('/');
-		}
-
-		await pb.collection('users').authRefresh();
-
-		GetCollectionsCache();
-		fetchCollections();
-
-		BrowserTitleTick();
-
 		window.SetHydrating = (id: string, value: boolean) => {
-			console.log(hydrationStatus);
 			if (value) {
 				if (hydrationTimers[id]) return;
 
@@ -166,6 +152,19 @@
 				isHydrating = anyStillHydrating;
 			}
 		};
+
+		loading = false;
+
+		if (!pb.authStore.isValid) {
+			goto('/');
+		}
+
+		await pb.collection('users').authRefresh();
+
+		GetCollectionsCache();
+		fetchCollections();
+
+		BrowserTitleTick();
 	});
 
 	$effect(BrowserTitleTick);
