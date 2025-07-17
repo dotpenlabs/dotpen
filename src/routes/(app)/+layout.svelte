@@ -256,7 +256,7 @@
 									<button
 										class="flex flex-col gap-1 w-full h-96 overflow-y-auto pb-8"
 										onkeyup={(e) => {
-											if (e.key === 'n') {
+											if (e.key === 'n' && !states.newCollection) {
 												states.newCollection = true;
 											}
 										}}
