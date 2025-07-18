@@ -28,6 +28,21 @@
 						await idbSetItem(col.id + ':cache', JSON.stringify(bookmarks));
 					}
 				}
+
+				const inboxId = await pb
+					.collection('collections')
+					.getFirstListItem("name = 'system_inbox'")
+					.then((e) => e.id);
+				const inboxCache = await idbGetItem(inboxId + ':cache');
+				if (!inboxCache) {
+					needsCache = true;
+					const inboxBookmarks = await pb.collection('bookmarks').getFullList({
+						filter: `collection = "${inboxId}" && deleted = false`,
+						sort: '-created'
+					});
+					await idbSetItem(inboxId + ':cache', JSON.stringify(inboxBookmarks));
+					await idbSetItem('inbox:id', inboxId);
+				}
 				if (needsCache) {
 					location.reload();
 					return;
