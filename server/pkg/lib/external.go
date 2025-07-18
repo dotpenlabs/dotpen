@@ -24,7 +24,14 @@ func UseProxy(origReq *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 
+	if origReq.Header == nil {
+		origReq.Header = make(http.Header)
+	}
 	proxyReq.Header = origReq.Header.Clone()
+
+	if proxyReq.Header == nil {
+		proxyReq.Header = make(http.Header)
+	}
 
 	proxyReq.Header.Set("x-auth-token", os.Getenv("API_KEY"))
 
