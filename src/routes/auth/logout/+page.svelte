@@ -5,13 +5,16 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
+	import { clearAll as idbClearAll } from '$/lib/idb';
 
 	onMount(() => {
 		console.log('[DUM] Logging out...');
 
 		pb.authStore.clear();
-		toast('Byee!');
-		goto('/');
+		idbClearAll().then(() => {
+			toast('Byee!');
+			goto('/');
+		});
 	});
 </script>
 
