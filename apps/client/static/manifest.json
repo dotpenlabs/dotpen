@@ -3,7 +3,7 @@
     "short_name": "Dotpen",
     "description": "A minimalistic, fast and beautiful bookmark manager.",
     "start_url": "/",
-    "display": "fullscreen",
+    "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#1d1d1d",
     "orientation": "portrait",
