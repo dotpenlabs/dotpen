@@ -23,7 +23,6 @@ apps/client/node_modules
 apps/client/build
 apps/client/package-lock.json
 apps/client/.svelte-kit
-apps/client/bun.lockb
 
 # Other files
 .output
