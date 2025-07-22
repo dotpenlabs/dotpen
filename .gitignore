@@ -1,6 +1,31 @@
-node_modules
+# Gitignore file
+# This file manages all the files that are ignored by git.
+# Here you can find files like output files, modules and private data.
+# Make sure to update this when adding items that require private (e.g. .env files)
 
-# Output
+# Best Practices
+.env
+.env.*
+!.env.example
+!.env.test
+
+(ignore)*
+
+# Backend Specifics
+apps/server/data/*
+
+# Frontend Specifics
+
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+apps/client/node_modules
+apps/client/build
+apps/client/package-lock.json
+apps/client/.svelte-kit
+apps/client/bun.lockb
+
+# Other files
 .output
 .vercel
 .netlify
@@ -8,23 +33,6 @@ node_modules
 /.svelte-kit
 /build
 
-# OS
+# System Preferences
 .DS_Store
 Thumbs.db
-
-# Env
-.env
-.env.*
-!.env.example
-!.env.test
-
-# Vite
-vite.config.js.timestamp-*
-vite.config.ts.timestamp-*
-
-# Serverside
-bun.lockb
-todo.md
-
-.ignore*
-server/pb_data/*

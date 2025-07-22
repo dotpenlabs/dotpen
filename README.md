@@ -1,38 +1,52 @@
-# sv
+![Dotpen - The smartest way to organize the web.](./assets/head.png)
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+# 📤 Dotpen
 
-## Creating a project
+The smartest way to organize the web, made for you. Beatifully designed, crazy fast navigation, and a lot more. Get started today at [dotpen.co](https://dotpen.co). ⚡
 
-If you're seeing this, you've probably already done this step. Congrats!
+## ❔ What is Dotpen?
+
+Dotpen is a web-based app with a focus on speed and simplicity. Dotpen is designed to help you organize your website and make it easier to navigate. With Dotpen, you can easily create a website structure that is easy to understand and navigate and you will never loose track of your content.
+
+## 💡 Why Dotpen?
+
+Most bookmarking tools are slow, chunky and cluttered. Dotpen is designed to be the smartest way to organize your website. It is fast, easy to use and has a lot of features that make it the best bookmarking tool out there. We use the power of simplicity and speed to make it an ease to use.
+
+## 💻 Stack
+
+Dotpen is built with the following technologies:
+
+- **Front-end**: SvelteKit v5, TailwindCSS, TS and Vite.
+- **Back-end**: Golang (extended with PocketBase)
+- **AI Services**: Google Gemini 2.5 Flash Lite (with _soon_ support for locally hosted models.)
+
+In the future we will try to make Dotpen switch to different backend technologies, with support for multiple concurrent users and more advanced features.
+
+## 📦 Getting started
+
+The quickest way to get started with Dotpen is to use our hosted version at [dotpen.co](https://dotpen.co). You can also download the source code and run it yourself.
+
+### 🏠 Running Dotpen locally
+
+##### Prerequisites
+
+- Docker + Docker Compose Plugin
+- To speed up the proces, a bit of technical knowledge is recommended.
+
+1. Clone the repository
 
 ```bash
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
+git clone https://github.com/dotpenapp/dotpen.git
 ```
 
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+2. Run the docker compose file
 
 ```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+docker compose up --build
 ```
 
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+3. Check for errors, if there are any, report them to us.
+4. Exit out of the attach with `Ctrl + C`
+5. Open it again, via `docker compose up -d`
+6. Open the browser and go to `localhost:5173`
+7. 🎉 Congrats, you are now running Dotpen locally.

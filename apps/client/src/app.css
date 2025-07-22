@@ -1,0 +1,19 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+* {
+	font-family: 'Lora', serif;
+}
+
+@theme {
+	--font-sans: 'Inter', sans-serif;
+}
+
+html,
+body {
+	min-height: 100% !important;
+	overflow-x: hidden !important;
+}

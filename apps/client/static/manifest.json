@@ -1,0 +1,27 @@
+{
+    "name": "Dotpen",
+    "short_name": "Dotpen",
+    "description": "A minimalistic, fast and beautiful bookmark manager.",
+    "start_url": "/",
+    "display": "fullscreen",
+    "background_color": "#ffffff",
+    "theme_color": "#1d1d1d",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/full.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "share_target": {
+        "action": "/share/",
+        "method": "GET",
+        "params": {
+            "title": "name",
+            "url": "link"
+        }
+    },
+    "scope": "/",
+    "id": "/"
+}
