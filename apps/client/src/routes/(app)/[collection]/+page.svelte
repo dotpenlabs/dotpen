@@ -43,14 +43,35 @@
 			if (inboxId) {
 				colId = inboxId;
 			} else {
-				colId = await pb
-					.collection('collections')
-					.getFirstListItem("name = 'system_inbox'")
-					.then((e: RecordModel) => {
-						return e.id;
+				try {
+					console.info('[head] Trying to get inbox from server...');
+					colId = await pb
+						.collection('collections')
+						.getFirstListItem("name = 'system_inbox'")
+						.then((e: RecordModel) => {
+							return e.id;
+						});
+
+					await idbSetItem('inbox:id', colId);
+				} catch (e) {
+					console.info('[head] No inbox found, creating one...');
+					toast.info('Welcome to Dotpen!', {
+						description:
+							"Thanks for joining us at Dotpen, we're excited to give you the best experience possible."
 					});
 
-				await idbSetItem('inbox:id', colId);
+					colId = await pb
+						.collection('collections')
+						.create({
+							name: 'system_inbox',
+							user: pb.authStore.record.id
+						})
+						.then((e: RecordModel) => {
+							return e.id;
+						});
+
+					await idbSetItem('inbox:id', colId);
+				}
 			}
 		}
 

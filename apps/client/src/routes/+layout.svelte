@@ -27,7 +27,9 @@
 
 Dotpen Labs (C) ${new Date().getFullYear()}
 
-Watch out! Pasting code into the development console can be dangerous and is not recommended. If you know what you're doing, come help us out iwanttodevelopdotpen@bijsven.nl
+Watch out! Pasting code into the development console can be dangerous and is not recommended. If you know what you're doing, come help us out https://github.com/dotpenlabs/dotpen!
+
+Your currently running v${APP_VERSION}, share this number when reporting bugs!
 `,
 			`font-family: monospace`
 		);

@@ -29,23 +29,27 @@
 					}
 				}
 
-				const inboxId = await pb
-					.collection('collections')
-					.getFirstListItem("name = 'system_inbox'")
-					.then((e) => e.id);
-				const inboxCache = await idbGetItem(inboxId + ':cache');
-				if (!inboxCache) {
-					needsCache = true;
-					const inboxBookmarks = await pb.collection('bookmarks').getFullList({
-						filter: `collection = "${inboxId}" && deleted = false`,
-						sort: '-created'
-					});
-					await idbSetItem(inboxId + ':cache', JSON.stringify(inboxBookmarks));
-					await idbSetItem('inbox:id', inboxId);
-				}
-				if (needsCache) {
-					location.reload();
-					return;
+				try {
+					const inboxId = await pb
+						.collection('collections')
+						.getFirstListItem("name = 'system_inbox'")
+						.then((e) => e.id);
+					const inboxCache = await idbGetItem(inboxId + ':cache');
+					if (!inboxCache) {
+						needsCache = true;
+						const inboxBookmarks = await pb.collection('bookmarks').getFullList({
+							filter: `collection = "${inboxId}" && deleted = false`,
+							sort: '-created'
+						});
+						await idbSetItem(inboxId + ':cache', JSON.stringify(inboxBookmarks));
+						await idbSetItem('inbox:id', inboxId);
+					}
+					if (needsCache) {
+						location.reload();
+						return;
+					}
+				} catch (e) {
+					console.info('[head] No inbox found, skipping cache...');
 				}
 			}
 			goto('/inbox');
