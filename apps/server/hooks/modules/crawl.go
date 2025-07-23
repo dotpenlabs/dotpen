@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"dotpen.co/server/pkg/lib"
+	"dotpen.co/server/hooks/lib"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/patrickmn/go-cache"
 	"github.com/pocketbase/pocketbase/core"

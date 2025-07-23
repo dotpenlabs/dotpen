@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/mail"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,7 +19,7 @@ import (
 	"github.com/pocketbase/pocketbase/tools/mailer"
 	"github.com/pocketbase/pocketbase/tools/types"
 
-	"dotpen.co/server/pkg/modules"
+	"dotpen.co/server/hooks/modules"
 )
 
 //go:embed emails
@@ -46,6 +47,22 @@ func main() {
 			modules.UseProxy(e.Response, e.Request)
 			return nil
 		}).Bind(apis.RequireAuth())
+
+		se.Router.GET("/api/waitlist-members", func(e *core.RequestEvent) error {
+			var count int
+
+			err := e.App.DB().
+				NewQuery("SELECT COUNT(*) AS c FROM waitlist").
+				One(&map[string]any{"c": &count})
+			if err != nil {
+				return err
+			}
+
+			e.Response.WriteHeader(200)
+			e.Response.Write([]byte(strconv.Itoa(count)))
+
+			return nil
+		})
 
 		se.Router.GET("/{path...}", apis.Static(os.DirFS("./public"), false))
 		se.Router.GET("/_/images/{path...}", func(e *core.RequestEvent) error {
