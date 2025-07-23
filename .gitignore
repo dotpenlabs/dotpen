@@ -12,7 +12,7 @@
 (ignore)*
 
 # Backend Specifics
-apps/server/data/*
+apps/server/data
 
 # Frontend Specifics
 
