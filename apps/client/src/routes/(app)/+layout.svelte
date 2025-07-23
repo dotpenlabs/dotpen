@@ -162,7 +162,8 @@
 		loading = false;
 
 		if (!pb.authStore.isValid) {
-			goto('/');
+			window.location.href = '/auth';
+			return;
 		}
 
 		await pb.collection('users').authRefresh();
