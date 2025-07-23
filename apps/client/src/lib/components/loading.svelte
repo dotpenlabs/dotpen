@@ -2,7 +2,7 @@
 	<img
 		src="/full.png"
 		alt="Dotpen Logo"
-		class="h-8 opacity-90 invert-100 dark:invert-0 hover:scale-110 active:scale-90 transition-all duration-1000 dark:opacity-90"
+		class="h-8 opacity-90 invert-100 dark:invert-0"
 	/>
 	<div class="w-64 h-1.5 bg-black/25 rounded-full overflow-hidden relative">
 		<div class="absolute h-full bg-black/50 rounded-full animate-loadingBar-alternate"></div>
