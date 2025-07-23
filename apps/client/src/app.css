@@ -6,6 +6,7 @@
 
 * {
 	font-family: 'Lora', serif;
+	touch-action: manipulation;
 }
 
 @theme {
