@@ -1,37 +1,41 @@
-<script lang="ts">
-	import { fade } from 'svelte/transition';
-	import { Rotate } from '../utils';
-</script>
-
-<div
-	in:fade={{ duration: 200, delay: 500 }}
-	out:fade
-	class="absolute top-0 left-0 h-full w-full flex items-center justify-center bg-[#F7EEE9] dark:bg-[#212020]"
->
+<div class="fixed inset-0 z-50 flex flex-col gap-4 items-center justify-center bg-white">
 	<img
-		src="/logo.svg"
+		src="/full.png"
 		alt="Dotpen Logo"
-		transition:Rotate={{ duration: 5000 }}
-		class="size-5 invert-100 animate-spin dark:invert-0 hover:scale-110 active:scale-90 transition-all duration-1000 dark:opacity-90"
-		on:introend={(event) => {
-			event.currentTarget.classList.add('rotateAnim');
-		}}
+		class="h-8 opacity-90 invert-100 dark:invert-0 hover:scale-110 active:scale-90 transition-all duration-1000 dark:opacity-90"
 	/>
+	<div class="w-64 h-1.5 bg-black/25 rounded-full overflow-hidden relative">
+		<div class="absolute h-full bg-black/50 rounded-full animate-loadingBar-alternate"></div>
+		<div class="absolute h-full bg-black/50 rounded-full animate-loadingBar"></div>
+	</div>
 </div>
 
 <style>
-	@keyframes rotateAnimation {
+	@keyframes loadingBar {
 		0% {
-			transform: rotate(0deg);
+			left: -10%;
+			width: 5%;
+		}
+		50% {
+			width: 65%;
 		}
 		100% {
-			transform: rotate(360deg);
+			left: 105%;
+			width: 5%;
 		}
 	}
 
-	:global(.rotateAnim) {
-		animation: rotateAnimation 1.75s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-		animation-delay: 3s;
-		animation-fill-mode: both;
+	.animate-loadingBar-alternate {
+		animation: loadingBar 1s ease-in-out infinite alternate;
+	}
+
+	.animate-loadingBar {
+		animation: loadingBar 1.25s ease-in-out infinite alternate;
+		animation-delay: 0.5s;
+	}
+
+	.animate-loadingBar,
+	.animate-loadingBar-alternate {
+		will-change: left, width;
 	}
 </style>
