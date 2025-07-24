@@ -274,10 +274,12 @@
 			<div
 				class="h-full w-full bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden flex flex-col"
 			>
-				<div class="flex flex-col gap-1 h-full w-full">
-					<div class="h-full w-full flex flex-col justify-between">
-						<div class="flex-1 flex flex-col items-center justify-start gap-1 p-4 relative w-full">
-							<div class="h-14 w-full mt-7">
+				<div class="flex flex-col gap-1 h-full w-full min-h-0">
+					<div class="h-full w-full flex flex-col justify-between min-h-0">
+						<div
+							class="flex-1 flex flex-col items-center justify-start gap-1 p-4 relative w-full min-h-0"
+						>
+							<div class="h-14 w-full">
 								<p class="text-xl font-medium">
 									{pb.authStore.record.name
 										? 'Howdy, ' + pb.authStore.record.name.split(' ')[0] + '!'
@@ -319,11 +321,21 @@
 								</button>
 							</div>
 							<Item url="/inbox" icon={Tray} label="Inbox" onSelect={handleSidebarItemClick} />
-							<div class="flex items-center gap-3 w-full opacity-50 my-2 mt-4">
+							<div class="flex items-center gap-3 w-full opacity-50 my-2 mt-4 relative">
 								<p class="text-xs">Collections</p>
 								<div class="flex-1 h-px bg-stone-300 dark:bg-stone-700 rounded-lg"></div>
+								<button
+									aria-label="Create new collection"
+									class="absolute right-0 top-1/2 -translate-y-1/2 text-xs px-2 py-1 rounded-full bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 dark:hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-stone-400"
+									style="z-index:2;"
+									onclick={() => {
+										states.newCollection = true;
+									}}
+								>
+									+
+								</button>
 							</div>
-							<div class="flex-1 w-full overflow-y-auto pb-8">
+							<div class="flex-1 w-full min-h-0 overflow-y-auto pb-8">
 								<button
 									oncontextmenu={(e: Event) => {
 										e.preventDefault();
@@ -440,11 +452,11 @@
 			</div>
 		</div>
 		<div
-			class="absolute inset-0 h-full w-full bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden flex flex-col transition-transform duration-300"
+			class="absolute inset-0 h-full w-full bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden flex flex-col transition-transform duration-300 min-h-0"
 			style="transform: translateX({mobileView === 'items' ? '0%' : '100%'})"
 		>
 			<div
-				class="flex items-center h-14 px-4 border-b border-stone-200 dark:border-stone-800 bg-white/80 dark:bg-stone-950/80 backdrop-blur-xl"
+				class="flex items-center h-14 px-4 border-b border-stone-200 dark:border-stone-800 bg-white/80 dark:bg-stone-950/80 backdrop-blur-xl flex-shrink-0"
 			>
 				<button class="mr-2 text-xl" onclick={handleBack} aria-label="Back">←</button>
 				<p class="text-base font-semibold flex-1 text-center">{currentCollectionName}</p>
@@ -460,7 +472,7 @@
 					<div class="ml-2 w-8 h-8 rounded-full bg-stone-200 dark:bg-stone-800"></div>
 				{/if}
 			</div>
-			<div class="flex-1 overflow-y-auto">
+			<div class="flex-1 min-h-0 overflow-y-auto">
 				<div class="h-full w-full p-5 overflow-x-clip">
 					{@render children()}
 				</div>
@@ -494,9 +506,11 @@
 			class="h-full w-full bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden"
 		>
 			<PaneGroup direction="horizontal">
-				<div class="flex flex-col gap-1 h-full w-128 px-4 pt-4">
-					<div class="h-full w-full flex flex-col justify-between">
-						<div class="flex-1 flex flex-col items-center justify-start gap-1 p-4 relative w-full">
+				<div class="flex flex-col gap-1 h-full w-128 px-4 pt-4 min-h-0">
+					<div class="h-full w-full flex flex-col justify-between min-h-0">
+						<div
+							class="flex-1 flex flex-col items-center justify-start gap-1 p-4 relative w-full min-h-0"
+						>
 							<div class="h-14 w-full">
 								<p class="text-xl font-medium">
 									{pb.authStore.record.name
@@ -541,11 +555,21 @@
 								</button>
 							</div>
 							<Item url="/inbox" icon={Tray} label="Inbox" onSelect={handleSidebarItemClick} />
-							<div class="flex items-center gap-3 w-full opacity-50 my-2 mt-4">
-								<p class="text-xs">Collections</p>
-								<div class="flex-1 h-px bg-stone-300 dark:bg-stone-700 rounded-lg"></div>
+							<div class="flex items-center gap-3 w-full my-2 mt-4 relative">
+								<p class="text-xs opacity-50">Collections</p>
+								<div class="flex-1 h-px bg-stone-300 dark:bg-stone-700 rounded-lg opacity-50"></div>
+								<button
+									aria-label="Create new collection"
+									class="absolute right-0 top-1/2 -translate-y-1/2 opacity-75 cursor-pointer active:scale-95 aspect-square text-base text-black px-2 rounded-full bg-white"
+									style="z-index:2;"
+									onclick={() => {
+										states.newCollection = true;
+									}}
+								>
+									+
+								</button>
 							</div>
-							<div class="flex-1 w-full overflow-y-auto pb-8">
+							<div class="flex-1 w-full min-h-0 overflow-y-auto pb-8">
 								<button
 									class="flex flex-col gap-1 w-full h-full"
 									onkeyup={(e) => {
@@ -683,7 +707,7 @@
 					</div>
 				</div>
 				<div class="bg-stone-200 dark:bg-stone-800 w-px h-full"></div>
-				<div class="h-full w-full p-5 overflow-x-clip">
+				<div class="h-full w-full p-5 overflow-x-clip min-h-0">
 					{@render children()}
 				</div>
 			</PaneGroup>

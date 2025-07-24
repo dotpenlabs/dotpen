@@ -118,7 +118,6 @@
 
 		if (!bmcache || bmcache.length === 0) {
 			window.SetHydrating('collection', true);
-			global = 'load';
 			console.info('[head:download] No cache available, downloading...');
 			await idbSetItem(colId + ':cache', JSON.stringify([]));
 
