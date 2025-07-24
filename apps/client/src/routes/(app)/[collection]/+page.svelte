@@ -84,13 +84,6 @@
 
 		const getBase64 = async (bm: Bookmark, path: string): Promise<string | null> => {
 			if (!path) return null;
-			console.log('[debug] bm.favicon:', bm.favicon);
-			console.log('[debug] path:', path);
-			console.log('[debug] pb.baseURL:', pb.baseURL);
-			console.log('[debug] bm.id:', bm.id);
-			console.log('[debug] colId:', colId);
-			console.log('[debug] bm.cover:', bm.cover);
-
 			try {
 				const r = await fetch(
 					`${pb.baseURL}api/files/bookmarks/${bm.id}/${path}?token=${pb.authStore.token}`
@@ -108,13 +101,14 @@
 			}
 		};
 
-		const useLocalImage = async (data: Bookmark[]): Promise<Bookmark[]> => {
+		// Zorg dat ALLE bookmarks in de cache base64-afbeeldingen krijgen
+		const ensureLocalImages = async (data: Bookmark[]): Promise<Bookmark[]> => {
 			await Promise.all(
 				data.map(async (bm) => {
-					if (bm.favicon) {
+					if (bm.favicon && !bm._favicon_base64) {
 						bm._favicon_base64 = await getBase64(bm, bm.favicon);
 					}
-					if (bm.cover) {
+					if (bm.cover && !bm._cover_base64) {
 						bm._cover_base64 = await getBase64(bm, bm.cover);
 					}
 				})
@@ -122,9 +116,8 @@
 			return data;
 		};
 
-		if (!bmcache) {
+		if (!bmcache || bmcache.length === 0) {
 			window.SetHydrating('collection', true);
-
 			global = 'load';
 			console.info('[head:download] No cache available, downloading...');
 			await idbSetItem(colId + ':cache', JSON.stringify([]));
@@ -134,10 +127,11 @@
 				sort: '-created'
 			})) as Bookmark[];
 
-			await useLocalImage(remote);
+			await ensureLocalImages(remote);
 			console.info('[head:bookmarks] Downloaded ' + remote.length + ' bookmarks');
 
 			await idbSetItem(colId + ':cache', JSON.stringify(remote));
+			bmcache = remote;
 			console.info('[head:download] Downloaded ' + remote.length + ' bookmarks');
 			window.SetHydrating('collection', false);
 		} else {
@@ -145,7 +139,7 @@
 				window.SetHydrating('collection', true);
 				console.info('[head:bookmarks] Downloading latest bookmarks');
 
-				const local = bmcache;
+				const local = await ensureLocalImages(bmcache);
 				const remote = (await pb.collection('bookmarks').getFullList({
 					filter: `collection = "${colId}" && updated > '${local.at(-1)?.updated || new Date(0).toISOString()}'`,
 					sort: '-created'
@@ -153,7 +147,7 @@
 
 				console.info('[head:bookmarks] Downloaded ' + remote.length + ' bookmarks');
 
-				await useLocalImage(remote);
+				await ensureLocalImages(remote);
 				const ubi = new Map([...local, ...remote].map((bm) => [bm.id, bm]));
 				bmcache = Array.from(ubi.values()).filter((bm) => !bm.deleted);
 				await idbSetItem(colId + ':cache', JSON.stringify(bmcache));

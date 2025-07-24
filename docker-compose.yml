@@ -1,7 +1,7 @@
 services:
   client:
     build:
-      context: ./client/
+      context: ./apps/  client/
       dockerfile: Dockerfile
     expose:
       - "5173"
@@ -9,14 +9,14 @@ services:
       - VITE_API_URL=http://localhost:8090
       - VITE_API_KEY=${CLOUDFLARE_API_KEY}
     volumes:
-      - ./data:/app/data
+      - ./data:/app/datat
     restart: unless-stopped
     command: ["node", "build"]
     networks:
       - proxy
   server:
     build:
-      context: ./server/
+      context: ./apps/server/
       dockerfile: Dockerfile
     expose:
       - "8090"

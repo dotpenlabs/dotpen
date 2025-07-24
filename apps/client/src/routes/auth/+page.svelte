@@ -96,9 +96,7 @@
 	<title>Login • Dotpen</title>
 </svelte:head>
 
-<content
-	class="bg-[#fcf6ea] h-full w-full absolute flex flex-col justify-center items-center gap-6"
->
+<content class="bg-white h-full w-full absolute flex flex-col justify-center items-center gap-6">
 	<p class="italic text-4xl text-black/65 text-center font-medium">
 		Take charge of your <span class="text-black">mind</span><br /> like a
 		<span class="text-black">superhero</span>.

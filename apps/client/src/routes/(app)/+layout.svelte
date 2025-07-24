@@ -43,6 +43,7 @@
 
 	let { children }: { children: Snippet } = $props();
 
+	let online = $state(true);
 	let loading = $state(true);
 	let states = $state({
 		quickActions: false,
@@ -171,9 +172,27 @@
 		GetCollectionsCache();
 		fetchCollections();
 		BrowserTitleTick();
-
 		UseUpdateManager();
+		UseOnlineStatusMGR();
 	});
+
+	function UseOnlineStatusMGR() {
+		setInterval(async () => {
+			try {
+				if (navigator.onLine === true) {
+					online = true;
+				} else if (navigator.onLine === false) {
+					online = false;
+				} else {
+					await pb.health.check();
+					online = true;
+				}
+			} catch (e) {
+				console.error('[onlinemgr] device seems offline', e);
+				online = false;
+			}
+		}, 3500);
+	}
 
 	function UseUpdateManager() {
 		const run = () => {
@@ -264,13 +283,19 @@
 										? 'Howdy, ' + pb.authStore.record.name.split(' ')[0] + '!'
 										: 'Howdy!'}
 								</p>
-								{#if !isHydrating}
-									<p in:fly={{ duration: 400, y: 5 }} class="text-xs opacity-65">
-										All changes are synchronized with the cloud.
-									</p>
+								{#if online}
+									{#if !isHydrating}
+										<p in:fly={{ duration: 400, y: 5 }} class="text-xs opacity-65">
+											All changes are synchronized with the cloud.
+										</p>
+									{:else}
+										<p in:fly={{ duration: 350, y: -10 }} class="text-xs opacity-65">
+											Changes are currently being synced...
+										</p>
+									{/if}
 								{:else}
 									<p in:fly={{ duration: 350, y: -10 }} class="text-xs opacity-65">
-										Changes are currently being synced...
+										Not connected to internet, data may be outdated.
 									</p>
 								{/if}
 							</div>
@@ -478,13 +503,19 @@
 										? 'Howdy, ' + pb.authStore.record.name.split(' ')[0] + '!'
 										: 'Howdy!'}
 								</p>
-								{#if !isHydrating}
-									<p in:fly={{ duration: 400, y: 5 }} class="text-xs opacity-65">
-										All changes are synchronized with the cloud.
-									</p>
+								{#if online}
+									{#if !isHydrating}
+										<p in:fly={{ duration: 400, y: 5 }} class="text-xs opacity-65">
+											All changes are synchronized with the cloud.
+										</p>
+									{:else}
+										<p in:fly={{ duration: 350, y: -10 }} class="text-xs opacity-65">
+											Changes are currently being synced...
+										</p>
+									{/if}
 								{:else}
 									<p in:fly={{ duration: 350, y: -10 }} class="text-xs opacity-65">
-										Changes are currently being synced...
+										Not connected to internet, data may be outdated.
 									</p>
 								{/if}
 							</div>
