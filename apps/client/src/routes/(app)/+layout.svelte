@@ -39,7 +39,7 @@
 	import { goto } from '$app/navigation';
 	import { pb } from '$/lib';
 	import { page } from '$app/state';
-	import DropBox from '$/lib/components/dropbox.svelte';
+	import View from '$/lib/plugins/view.svelte';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -546,12 +546,12 @@
 								</button>
 								<button
 									onclick={() => {
-										goto('/extensions');
+										goto('/plugins');
 									}}
 									class="flex gap-2 text-[14.5px] justify-center rounded-xl cursor-pointer active:scale-98 active:opacity-90 duration-50 items-center border h-full w-full border-[#E4E4E4] dark:border-[#1d1d1d]"
 								>
 									<PuzzlePiece />
-									Extensions
+									Plugins
 								</button>
 							</div>
 							<Item url="/inbox" icon={Tray} label="Inbox" onSelect={handleSidebarItemClick} />
@@ -692,7 +692,9 @@
 									{/if}
 								</button>
 							</div>
-							<DropBox />
+							<div class="h-32 overflow-clip mb-7">
+								<View location="sidebar-bottom" />
+							</div>
 							<div
 								class="flex flex-row gap-3 items-center justify-start px-3 w-full -mt-5 text-xs opacity-80"
 							>
