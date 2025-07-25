@@ -1,20 +1,26 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import Host from './host.svelte';
-	import { plgmgr } from './mgr';
+	import { PluginKit } from './head';
 
 	let { location } = $props();
 
 	let plugins = $state([]);
 
+	const updatePlugins = () => {
+		plugins = PluginKit.getByLocation(location);
+	};
+
 	onMount(() => {
-		plugins = plgmgr.getPluginsAt(location);
+		updatePlugins();
+		const unsubscribe = PluginKit.subscribe(updatePlugins);
+
+		onDestroy(() => {
+			unsubscribe();
+		});
 	});
 </script>
 
-<div>
-	{#each plugins as plugin}
-		<p>{plugin.name}</p>
-		<Host name={plugin.name} src={plugin.url} />
-	{/each}
-</div>
+{#each plugins as plugin}
+	<Host id={plugin.id} name={plugin.name} src={plugin.url} />
+{/each}
