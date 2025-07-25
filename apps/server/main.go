@@ -49,17 +49,19 @@ func main() {
 		}).Bind(apis.RequireAuth())
 
 		se.Router.GET("/api/waitlist-members", func(e *core.RequestEvent) error {
-			var count int
+			var result struct {
+				Count int `db:"c"`
+			}
 
 			err := e.App.DB().
 				NewQuery("SELECT COUNT(*) AS c FROM waitlist").
-				One(&map[string]any{"c": &count})
+				One(&result)
 			if err != nil {
 				return err
 			}
 
 			e.Response.WriteHeader(200)
-			e.Response.Write([]byte(strconv.Itoa(count)))
+			e.Response.Write([]byte(strconv.Itoa(result.Count)))
 
 			return nil
 		})
@@ -100,7 +102,7 @@ func main() {
 
 	app.OnRecordUpdate("waitlist").BindFunc(func(e *core.RecordEvent) error {
 		if e.Record.GetBool("accept") {
-			emailBytes, err := emails.ReadFile("pb_emails/invited.html")
+			emailBytes, err := emails.ReadFile("emails/invited.html")
 			if err != nil {
 				return err
 			}
