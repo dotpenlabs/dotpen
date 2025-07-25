@@ -3,7 +3,6 @@
 	import Trash from 'phosphor-svelte/lib/Trash';
 	import { ArrowSquareOut } from 'phosphor-svelte';
 	import { fly } from 'svelte/transition';
-	import type { LinkItem } from '$/lib/components/item/types';
 
 	type StoreItem = {
 		label: string;
