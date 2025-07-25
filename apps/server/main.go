@@ -102,7 +102,7 @@ func main() {
 
 	app.OnRecordUpdate("waitlist").BindFunc(func(e *core.RecordEvent) error {
 		if e.Record.GetBool("accept") {
-			emailBytes, err := emails.ReadFile("pb_emails/invited.html")
+			emailBytes, err := emails.ReadFile("emails/invited.html")
 			if err != nil {
 				return err
 			}
