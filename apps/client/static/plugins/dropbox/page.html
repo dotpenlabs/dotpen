@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, sans-serif;
+            background: transparent;
+            color: #333;
+            height: 100%;
+            width: 100%;
+        }
+
+        .drop-zone {
+            width: 100%;
+            height: 100%;
+            min-height: 100px;
+            border: 2px dashed #ccc;
+            border-radius: 16px;
+            padding: 1rem;
+            background: white;
+            transition: all 0.3s ease;
+            overflow: auto;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .drop-zone.dragging {
+            background: #e0e0ff;
+            border-color: #8884ff;
+        }
+
+        .link-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            background: #fdfdfd;
+            border: 1px solid #ddd;
+            cursor: grab;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: background 0.3s ease;
+            animation: flyIn 0.4s forwards;
+            opacity: 0;
+            transform: translateX(20px) scale(0.95);
+        }
+
+        .link-item:hover {
+            background: #f3f3f3;
+        }
+
+        .favicon {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .link-text {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .link-text div:first-child {
+            font-weight: 600;
+        }
+
+        .link-url {
+            font-size: 0.8rem;
+            color: #777;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .remove-btn {
+            margin-left: 1rem;
+            font-size: 0.9rem;
+            color: #888;
+            cursor: pointer;
+            padding: 0 0.5rem;
+            border: none;
+            background: none;
+            transition: color 0.2s ease;
+        }
+
+        .remove-btn:hover {
+            color: #e74c3c;
+        }
+
+        .placeholder {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            width: 100%;
+            flex-direction: column;
+            text-align: center;
+            opacity: 0.65;
+            font-size: 0.875rem;
+        }
+
+        .placeholder svg {
+            width: 24px;
+            height: 24px;
+            display: block;
+            margin: 0 auto 0.5rem;
+            opacity: 0.65;
+        }
+
+        @keyframes flyIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="drop-zone" id="dropZone">
+        <div id="placeholder" class="placeholder">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
+                <path
+                    d="M188,80a27.79,27.79,0,0,0-13.36,3.4,28,28,0,0,0-46.64-11A28,28,0,0,0,80,92v20H68a28,28,0,0,0-28,28v12a88,88,0,0,0,176,0V108A28,28,0,0,0,188,80Zm12,72a72,72,0,0,1-144,0V140a12,12,0,0,1,12-12H80v24a8,8,0,0,0,16,0V92a12,12,0,0,1,24,0v28a8,8,0,0,0,16,0V92a12,12,0,0,1,24,0v28a8,8,0,0,0,16,0V108a12,12,0,0,1,24,0Z">
+                </path>
+            </svg>
+            <p>Drag & drop links to organise them</p>
+        </div>
+        <div id="linkList"></div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const linkList = document.getElementById('linkList');
+        const placeholder = document.getElementById('placeholder');
+
+        let heldLinks = [];
+
+        function updateLinkList() {
+            linkList.innerHTML = '';
+            placeholder.style.display = heldLinks.length ? 'none' : 'block';
+
+            heldLinks.forEach((link, index) => {
+                const item = document.createElement('div');
+                item.className = 'link-item';
+                item.style.animationDelay = `${index * 100}ms`;
+                item.draggable = true;
+
+                item.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', link.url);
+                    e.dataTransfer.effectAllowed = 'move';
+                    item.classList.add('being-dragged');
+                });
+
+                item.addEventListener('dragend', (e) => {
+                    const rect = dropZone.getBoundingClientRect();
+                    const outOfBounds =
+                        e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom;
+                    if (outOfBounds) {
+                        heldLinks = heldLinks.filter((l) => l.url !== link.url);
+                        updateLinkList();
+                    }
+                });
+
+                const favicon = document.createElement('img');
+                favicon.className = 'favicon';
+                try {
+                    const hostname = new URL(link.url).hostname;
+                    favicon.src = `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+                } catch {
+                    favicon.src = '';
+                }
+
+                const textContainer = document.createElement('div');
+                textContainer.className = 'link-text';
+
+                const title = document.createElement('div');
+                title.textContent = link.label || getHostname(link.url);
+
+                const urlText = document.createElement('div');
+                urlText.className = 'link-url';
+                urlText.textContent = link.url;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.textContent = '✕';
+                removeBtn.onclick = () => {
+                    heldLinks = heldLinks.filter((l) => l.url !== link.url);
+                    updateLinkList();
+                };
+
+                textContainer.appendChild(title);
+                textContainer.appendChild(urlText);
+                item.appendChild(favicon);
+                item.appendChild(textContainer);
+                item.appendChild(removeBtn);
+                linkList.appendChild(item);
+            });
+        }
+
+        function getHostname(url) {
+            try {
+                return new URL(url).hostname;
+            } catch {
+                return url;
+            }
+        }
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragging');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragging');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragging');
+
+            const url = e.dataTransfer.getData('text/plain');
+            if (!url || heldLinks.some((l) => l.url === url)) return;
+
+            heldLinks.push({ url });
+            updateLinkList();
+        });
+    </script>
+</body>
+
+</html>
