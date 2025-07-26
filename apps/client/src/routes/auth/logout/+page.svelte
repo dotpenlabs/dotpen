@@ -8,13 +8,22 @@
 	import { clearAll as idbClearAll } from '$/lib/idb';
 
 	onMount(() => {
-		console.log('[DUM] Logging out...');
+		console.log('[System] Logging out...');
 
-		pb.authStore.clear();
-		idbClearAll().then(() => {
-			toast('Byee!');
-			goto('/');
+		localStorage.clear();
+		sessionStorage.clear();
+
+		document.cookie.split(';').forEach(function (c) {
+			document.cookie = c.trim().split('=')[0] + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
 		});
+
+		if (indexedDB.databases) {
+			indexedDB.databases().then((dbs) => {
+				dbs.forEach((db) => indexedDB.deleteDatabase(db.name));
+			});
+		}
+
+		goto('/');
 	});
 </script>
 

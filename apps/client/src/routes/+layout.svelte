@@ -1,7 +1,7 @@
 <script>
 	import '../app.css';
 
-	import { ModeWatcher, mode } from 'mode-watcher';
+	import { ModeWatcher, mode, setMode } from 'mode-watcher';
 	import { BugBeetle } from 'phosphor-svelte';
 	import { onMount } from 'svelte';
 	import { Toaster } from 'svelte-sonner';
@@ -33,11 +33,13 @@ Your currently running v${APP_VERSION}, share this number when reporting bugs!
 `,
 			`font-family: monospace`
 		);
+
+		setMode('system');
 	});
 </script>
 
-<ModeWatcher defaultMode="light" />
-<Toaster position="top-right" theme={$mode ? 'light' : 'dark'} richColors />
+<ModeWatcher defaultMode="system" />
+<Toaster position="top-right" theme={$mode == 'dark' ? 'dark' : 'light'} richColors />
 
 <content>
 	{@render children()}

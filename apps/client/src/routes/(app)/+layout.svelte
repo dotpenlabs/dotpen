@@ -265,6 +265,7 @@
 	<Loading />
 {:else if isMobile}
 	<div
+		data-vaul-drawer-wrapper
 		class="absolute inset-0 flex h-full w-full bg-[#FAF5F2] dark:bg-[#171616] transition-colors duration-1200 overflow-hidden"
 	>
 		<div
@@ -326,7 +327,7 @@
 								<div class="flex-1 h-px bg-stone-300 dark:bg-stone-700 rounded-lg"></div>
 								<button
 									aria-label="Create new collection"
-									class="absolute right-0 top-1/2 -translate-y-1/2 text-xs px-2 py-1 rounded-full bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 dark:hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-stone-400"
+									class="absolute right-0 top-1/2 -translate-y-1/2 text-xs px-2 py-1 scale-125 rounded-full bg-stone-200 dark:bg-stone-600 hover:bg-stone-300 dark:hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-stone-400"
 									style="z-index:2;"
 									onclick={() => {
 										states.newCollection = true;
@@ -478,19 +479,6 @@
 				</div>
 			</div>
 		</div>
-		<nav
-			class="fixed bottom-0 left-0 right-0 bg-white dark:bg-stone-950 border-t border-stone-300 dark:border-stone-700 flex justify-around py-2 z-50"
-		>
-			<button onclick={() => (mobileView = 'sidebar')}>
-				<Tray class="mx-auto" />
-				<span class="text-xs">Home</span>
-			</button>
-
-			<button onclick={() => (states.showSettings = true)}>
-				<Gear class="mx-auto" />
-				<span class="text-xs">Settings</span>
-			</button>
-		</nav>
 	</div>
 {:else}
 	<content
@@ -560,7 +548,7 @@
 								<div class="flex-1 h-px bg-stone-300 dark:bg-stone-700 rounded-lg opacity-50"></div>
 								<button
 									aria-label="Create new collection"
-									class="absolute right-0 top-1/2 -translate-y-1/2 opacity-75 cursor-pointer active:scale-95 aspect-square text-base text-black px-2 rounded-full bg-white"
+									class="absolute right-0 flex justify-center items-center p-3 px-2 cursor-pointer active:scale-95 aspect-square text-base text-black rounded-full bg-white dark:bg-stone-800 dark:text-white"
 									style="z-index:2;"
 									onclick={() => {
 										states.newCollection = true;
