@@ -319,7 +319,7 @@
 		// - Storing data -
 
 		const form: Record<string, any> = {
-			label: crawl.title ?? new URL(url).hostname,
+			label: crawl.title,
 			link: url,
 			collection: colId,
 			user: pb.authStore.record.id,
