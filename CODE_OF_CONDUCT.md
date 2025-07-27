@@ -5,7 +5,6 @@ At Dotpen, we strive to create an open, safe, and respectful community — a pla
 ## 📝 Our Standards
 
 As members of the Dotpen community, we commit to:
-
 - Treating others with respect, kindness, and empathy.
 - Offering constructive feedback without judgment or harassment.
 - Fostering an inclusive, welcoming, and supportive atmosphere for everyone.
@@ -30,5 +29,3 @@ All moderators are required to respect the privacy and confidentiality of the re
 ## 🌟 Attribution
 
 This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org/version/2/1/code_of_conduct.html), version 2.1.
-
-For answers to common questions, see the [FAQ](https://www.contributor-covenant.org/faq).
