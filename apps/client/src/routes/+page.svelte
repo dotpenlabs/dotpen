@@ -18,14 +18,14 @@
 				});
 				let needsCache = false;
 				for (const col of collections) {
-					const cache = await idbGetItem(col.id + ':cache');
+					const cache = await idbGetItem('collection:' + col.id + ':cache');
 					if (!cache) {
 						needsCache = true;
 						const bookmarks = await pb.collection('bookmarks').getFullList({
 							filter: `collection = "${col.id}" && deleted = false`,
 							sort: '-created'
 						});
-						await idbSetItem(col.id + ':cache', JSON.stringify(bookmarks));
+						await idbSetItem('collection:' + col.id + ':cache', JSON.stringify(bookmarks));
 					}
 				}
 
@@ -34,14 +34,14 @@
 						.collection('collections')
 						.getFirstListItem("name = 'system_inbox'")
 						.then((e) => e.id);
-					const inboxCache = await idbGetItem(inboxId + ':cache');
+					const inboxCache = await idbGetItem('collection:' + inboxId + ':cache');
 					if (!inboxCache) {
 						needsCache = true;
 						const inboxBookmarks = await pb.collection('bookmarks').getFullList({
 							filter: `collection = "${inboxId}" && deleted = false`,
 							sort: '-created'
 						});
-						await idbSetItem(inboxId + ':cache', JSON.stringify(inboxBookmarks));
+						await idbSetItem('collection:' + inboxId + ':cache', JSON.stringify(inboxBookmarks));
 						await idbSetItem('inbox:id', inboxId);
 					}
 					if (needsCache) {

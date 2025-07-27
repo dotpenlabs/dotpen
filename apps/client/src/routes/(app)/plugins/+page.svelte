@@ -1,25 +1,8 @@
-<script>
-	import { PluginKit } from '$/lib/plugins/head';
-	import View from '$/lib/plugins/view.svelte';
+<script lang="ts">
+	import { PluginKit } from '$/lib/plugins/client';
 	import { onMount } from 'svelte';
 
 	onMount(() => {
-		try {
-			PluginKit.deregister('dropbox');
-
-			PluginKit.register({
-				id: 'dropbox',
-				url: '/plugins/dropbox/page.html',
-				location: 'sidebar-bottom',
-
-				perms: ['app:sidebar-bottom']
-			});
-		} catch (e) {
-			console.error(e);
-		}
+		PluginKit.Register('nl.bijsven.dropbox');
 	});
 </script>
-
-<content class="h-full w-full absolute">
-	<p>New plugins are now loaded!</p>
-</content>

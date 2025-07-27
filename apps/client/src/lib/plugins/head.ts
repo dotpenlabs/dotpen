@@ -3,10 +3,11 @@ import { handlers } from './handlers';
 
 export type PluginConfig = {
 	id: string;
-	url: string;
-	location: string;
+	name: string;
+	locations?: string[];
+	content: string;
 	render?: HTMLIFrameElement;
-	perms?: string[];
+	perms: string[];
 };
 
 type Subscriber = () => void;
@@ -47,7 +48,7 @@ class PluginKitMgr {
 
 	getByLocation(location: string): PluginConfig[] {
 		return this.plugins.filter((plugin) => {
-			const hasCorrectLocation = plugin.location === location;
+			const hasCorrectLocation = location in plugin.locations;
 			const hasPermission = plugin.perms?.includes(`app:${location}`);
 
 			if (hasCorrectLocation && !hasPermission) {
@@ -68,21 +69,13 @@ class PluginKitMgr {
 
 	emit(id: string, message: any): void {
 		const plugin = this.plugins.find((p) => p.id === id);
-		plugin?.render?.contentWindow?.postMessage(message, plugin.url);
+		plugin?.render?.contentWindow?.postMessage(message, window.location.origin);
 	}
 
 	#receive(event: MessageEvent): void {
 		console.debug('[PluginKit] Received message event:', event);
 		for (const plugin of this.plugins) {
-			if (plugin.url.startsWith('/')) {
-				plugin.url = plugin.url.replace('/', window.location.origin + '/');
-			}
-			const pluginURL = new URL(plugin.url);
-			const isDev = true;
-			const contentWindowMatch = plugin.render?.contentWindow === event.source;
-			const originMatch = event.origin === pluginURL.origin;
-			const allowNullOrigin = isDev && event.origin === 'null';
-			if (contentWindowMatch && (originMatch || allowNullOrigin)) {
+			if (plugin.render?.contentWindow === event.source) {
 				console.debug('[PluginKit] Message accepted for plugin:', plugin.id);
 				this.#handle(event.data, plugin);
 			} else {
@@ -103,7 +96,7 @@ class PluginKitMgr {
 	}
 }
 
-export const PluginKit = (() => {
+export const _PluginKit = (() => {
 	if (typeof window !== 'undefined') {
 		return new PluginKitMgr();
 	} else {

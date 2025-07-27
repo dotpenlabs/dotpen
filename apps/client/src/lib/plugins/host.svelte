@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { PluginKit } from './head';
+	import { _PluginKit } from './head';
 
-	let { id, name, src } = $props();
+	let { id, name, srcdoc } = $props();
 
 	let renderError = $state(false);
 	let render = $state() as HTMLIFrameElement;
@@ -10,7 +10,7 @@
 	const sandbox_default = 'allow-scripts';
 
 	onMount(() => {
-		PluginKit.bind(id, render);
+		_PluginKit.bind(id, render);
 	});
 </script>
 
@@ -21,7 +21,7 @@
 {:else}
 	<iframe
 		bind:this={render}
-		{src}
+		{srcdoc}
 		sandbox={sandbox_default}
 		data-plugin-id={id}
 		style="border: none; width: 100%; height: 100%;"

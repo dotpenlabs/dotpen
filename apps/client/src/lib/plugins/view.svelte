@@ -1,19 +1,19 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import Host from './host.svelte';
-	import { PluginKit } from './head';
+	import { _PluginKit, type PluginConfig } from './head';
 
 	let { location } = $props();
 
-	let plugins = $state([]);
+	let plugins = $state([]) as PluginConfig[];
 
 	const updatePlugins = () => {
-		plugins = PluginKit.getByLocation(location);
+		plugins = _PluginKit.getByLocation(location);
 	};
 
 	onMount(() => {
 		updatePlugins();
-		const unsubscribe = PluginKit.subscribe(updatePlugins);
+		const unsubscribe = _PluginKit.subscribe(updatePlugins);
 
 		onDestroy(() => {
 			unsubscribe();
@@ -22,5 +22,5 @@
 </script>
 
 {#each plugins as plugin}
-	<Host id={plugin.id} name={plugin.name} src={plugin.url} />
+	<Host id={plugin.id} name={plugin.name} srcdoc={plugin.content} />
 {/each}

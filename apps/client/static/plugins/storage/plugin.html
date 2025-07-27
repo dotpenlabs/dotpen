@@ -1,0 +1,26 @@
+<p id="status" class="mb-2">Calculating...</p>
+
+<div style="width: 100%; background: wheat; border-radius: 15px; height: 1rem; overflow: hidden;">
+    <div id="usage-bar" style="background: blue; height: 1rem; width: 0%;"></div>
+</div>
+
+<script>
+    async function updateStorageUsage() {
+        if (!navigator.storage || !navigator.storage.estimate) {
+            document.getElementById('status').textContent = 'Storage API niet beschikbaar.';
+            return;
+        }
+
+        const value = await navigator.storage.estimate();
+        const usage = value.usage || 0;
+        const quota = value.quota || 1;
+
+        const percentage = Math.round((usage / quota) * 100);
+        const quotaMB = Math.round(quota / 1024 / 1024);
+
+        document.getElementById('status').textContent = `${percentage}% used from ${quotaMB} MB.`;
+        document.getElementById('usage-bar').style.width = percentage + '%';
+    }
+
+    updateStorageUsage();
+</script>

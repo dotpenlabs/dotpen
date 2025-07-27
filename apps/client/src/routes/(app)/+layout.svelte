@@ -478,19 +478,6 @@
 				</div>
 			</div>
 		</div>
-		<nav
-			class="fixed bottom-0 left-0 right-0 bg-white dark:bg-stone-950 border-t border-stone-300 dark:border-stone-700 flex justify-around py-2 z-50"
-		>
-			<button onclick={() => (mobileView = 'sidebar')}>
-				<Tray class="mx-auto" />
-				<span class="text-xs">Home</span>
-			</button>
-
-			<button onclick={() => (states.showSettings = true)}>
-				<Gear class="mx-auto" />
-				<span class="text-xs">Settings</span>
-			</button>
-		</nav>
 	</div>
 {:else}
 	<content
@@ -694,6 +681,22 @@
 							</div>
 							<div class="h-32 overflow-clip mb-7">
 								<View location="sidebar-bottom" />
+								{#await navigator.storage.estimate()}
+									<p>Calculating...</p>
+								{:then value}
+									<p class="mb-2">
+										{Math.round(value.usage / value.quota)}% gebruikt van {Math.round(
+											value.quota / 1024 / 1024
+										)} MB
+									</p>
+
+									<div class="w-full bg-gray-300 rounded h-4 overflow-hidden">
+										<div
+											class="bg-blue-600 h-4"
+											style="width: {(value.usage / value.quota) * 100}%"
+										></div>
+									</div>
+								{/await}
 							</div>
 							<div
 								class="flex flex-row gap-3 items-center justify-start px-3 w-full -mt-5 text-xs opacity-80"

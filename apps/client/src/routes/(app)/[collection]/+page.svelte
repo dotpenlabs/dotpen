@@ -75,7 +75,9 @@
 			}
 		}
 
-		let bmcache = (await JSON.parse((await idbGetItem(colId + ':cache')) || '[]')) as Bookmark[];
+		let bmcache = (await JSON.parse(
+			(await idbGetItem('collection:' + colId + ':cache')) || '[]'
+		)) as Bookmark[];
 		const bmheartbeat = bmcache[bmcache.length - 1]?.updated;
 
 		console.info('[head] connected to ' + colId);
@@ -119,7 +121,7 @@
 		if (!bmcache || bmcache.length === 0) {
 			window.SetHydrating('collection', true);
 			console.info('[head:download] No cache available, downloading...');
-			await idbSetItem(colId + ':cache', JSON.stringify([]));
+			await idbSetItem('collection:' + colId + ':cache', JSON.stringify([]));
 
 			const remote = (await pb.collection('bookmarks').getFullList({
 				filter: `collection = "${colId}" && deleted = false`,
@@ -129,7 +131,7 @@
 			await ensureLocalImages(remote);
 			console.info('[head:bookmarks] Downloaded ' + remote.length + ' bookmarks');
 
-			await idbSetItem(colId + ':cache', JSON.stringify(remote));
+			await idbSetItem('collection:' + colId + ':cache', JSON.stringify(remote));
 			bmcache = remote;
 			console.info('[head:download] Downloaded ' + remote.length + ' bookmarks');
 			window.SetHydrating('collection', false);
@@ -149,7 +151,7 @@
 				await ensureLocalImages(remote);
 				const ubi = new Map([...local, ...remote].map((bm) => [bm.id, bm]));
 				bmcache = Array.from(ubi.values()).filter((bm) => !bm.deleted);
-				await idbSetItem(colId + ':cache', JSON.stringify(bmcache));
+				await idbSetItem('collection:' + colId + ':cache', JSON.stringify(bmcache));
 
 				console.info('[head:bookmarks] Updated cache has ' + bmcache.length + ' bookmarks');
 				window.SetHydrating('collection', false);
@@ -336,7 +338,7 @@
 
 		// - Finishing up -
 		bookmarks.unshift(record);
-		await idbSetItem(colId + ':cache', JSON.stringify(bookmarks));
+		await idbSetItem('collection:' + colId + ':cache', JSON.stringify(bookmarks));
 		toast.dismiss(loading);
 
 		window.SetColored('green');
@@ -347,7 +349,7 @@
 		if (!bm) return;
 
 		bookmarks = bookmarks.filter((m) => m.id !== item.id);
-		await idbSetItem(colId + ':cache', JSON.stringify(bookmarks));
+		await idbSetItem('collection:' + colId + ':cache', JSON.stringify(bookmarks));
 
 		await tick();
 
@@ -364,7 +366,7 @@
 					await pb.collection('bookmarks').update(bm.id, {
 						deleted: true
 					});
-					await idbSetItem(colId + ':cache', JSON.stringify(bookmarks));
+					await idbSetItem('collection:' + colId + ':cache', JSON.stringify(bookmarks));
 					window.SetColored('red');
 				} else {
 					toast.error('Failed to delete bookmark! (local error)');
@@ -383,7 +385,7 @@
 					confirmed = false;
 					try {
 						bookmarks = [bm, ...bookmarks];
-						await idbSetItem(colId + ':cache', JSON.stringify(bookmarks));
+						await idbSetItem('collection:' + colId + ':cache', JSON.stringify(bookmarks));
 						await tick();
 						requestAnimationFrame(async () => {
 							await masonry?.recalculate(true);
