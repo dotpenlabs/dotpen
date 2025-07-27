@@ -1,42 +1,40 @@
 services:
-  client:
-    build:
-      context: ./apps/  client/
-      dockerfile: Dockerfile
-    expose:
-      - "5173"
-    environment:
-      - VITE_API_URL=http://localhost:8090
-      - VITE_API_KEY=${CLOUDFLARE_API_KEY}
-    volumes:
-      - ./data:/app/datat
-    restart: unless-stopped
-    command: ["node", "build"]
-    networks:
-      - proxy
-  server:
-    build:
-      context: ./apps/server/
-      dockerfile: Dockerfile
-    expose:
-      - "8090"
-    environment:
-      - API_KEY=${CLOUDFLARE_API_KEY}
-    volumes:
-      - ./data:/app/data
-    restart: unless-stopped
-    command: ["./app", "serve", "--http", "0.0.0.0:8090"]
-    networks:
-      - proxy
+    client:
+        build:
+            context: ./apps/client/
+            dockerfile: Dockerfile
+        expose:
+            - "5173"
+        environment:
+            - VITE_API_URL=http://localhost:8090
+            - VITE_API_KEY=${CLOUDFLARE_API_KEY}
+        restart: unless-stopped
+        command: ["node", "build"]
+        networks:
+            - proxy
+    server:
+        build:
+            context: ./apps/server/
+            dockerfile: Dockerfile
+        expose:
+            - "8090"
+        environment:
+            - API_KEY=${CLOUDFLARE_API_KEY}
+        volumes:
+            - ./data:/app/data
+        restart: unless-stopped
+        command: ["./app", "serve", "--http", "0.0.0.0:8090"]
+        networks:
+            - proxy
 
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    depends_on:
-      - app
-    restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
-    networks:
-      - proxy
+    cloudflared:
+        image: cloudflare/cloudflared:latest
+        depends_on:
+            - app
+        restart: unless-stopped
+        command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+        networks:
+            - proxy
 
 networks:
-  proxy:
+    proxy:
