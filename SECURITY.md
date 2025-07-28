@@ -7,7 +7,7 @@ Dotpen tries to keep your data as safe as possible, and does NOT sell any of you
 If you discover a security vulnerability, please follow these steps:
 
 - DO NOT disclose the vulnerability publicly.
-- Send a detailed report to: [security@bijsven.nl](mailto:security@bijsven.nl)
+- Report the issue on [our GitHub Security page](https://github.com/dotpenlabs/dotpen/security)
 - If possible, provide a proof of concept or a way to reproduce the vulnerability.
 - If you have a fix, please send it to us.
 
