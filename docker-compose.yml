@@ -21,7 +21,12 @@ services:
         environment:
             - API_KEY=${CLOUDFLARE_API_KEY}
         volumes:
-            - ./data:/app/data
+            - ./apps/server/data:/app/data
+            - ./apps/server/emails:/app/emails
+            - ./apps/server/hooks:/app/hooks
+            - ./apps/server/migrations:/app/migrations
+            - ./apps/server/public:/app/public
+
         restart: unless-stopped
         command: ["./app", "serve", "--http", "0.0.0.0:8090"]
         networks:
