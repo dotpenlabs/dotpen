@@ -9,7 +9,7 @@
     "orientation": "portrait",
     "icons": [
         {
-            "src": "/favicon.png",
+            "src": "/assets/app-icon.png",
             "sizes": "512x512",
             "type": "image/png"
         }
