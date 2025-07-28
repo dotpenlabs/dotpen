@@ -160,8 +160,6 @@
 			}, 1750);
 		};
 
-		loading = false;
-
 		if (!pb.authStore.isValid) {
 			window.location.href = '/auth';
 			return;
@@ -172,6 +170,7 @@
 		GetCollectionsCache();
 		fetchCollections();
 		BrowserTitleTick();
+		loading = false;
 		UseUpdateManager();
 		UseOnlineStatusMGR();
 	});
