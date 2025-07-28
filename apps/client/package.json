@@ -42,6 +42,7 @@
     "node-fetch": "^3.3.2",
     "paneforge": "^0.0.6",
     "phosphor-svelte": "^3.0.1",
+    "pluginkit": "github:dotpenlabs/PluginKit",
     "pocketbase": "^0.26.1",
     "svelte-gesture": "^0.1.4",
     "svelte-markdown": "^0.4.1",
