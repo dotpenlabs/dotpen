@@ -9,24 +9,12 @@
 
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
-	import type { LayoutData } from '../$types';
-
-	import { PaneGroup, Pane, PaneResizer } from 'paneforge';
+	import { PaneGroup } from 'paneforge';
 	import {
-		Book,
-		CaretDoubleDown,
-		CaretDoubleUp,
-		CaretUpDown,
-		Check,
-		FigmaLogo,
 		Folder,
-		Gear,
 		MagnifyingGlass,
-		Palette,
 		PuzzlePiece,
-		Sparkle,
 		Tray,
-		X
 	} from 'phosphor-svelte';
 
 	import Loading from '$/lib/components/loading.svelte';
@@ -62,7 +50,6 @@
 
 	const hydrationStatus: Record<string, boolean> = {};
 	const hydrationTimers: Record<string, NodeJS.Timeout> = {};
-
 	const COLLECTIONS_CACHE_KEY = 'dotpen_collections';
 
 	function GetCollectionsCache() {
