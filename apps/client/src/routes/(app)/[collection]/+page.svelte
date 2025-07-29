@@ -117,7 +117,7 @@
 		};
 
 		if (!bmcache || bmcache.length === 0) {
-			window.SetHydrating('collection', true);
+			window.SetHydrating(true);
 			console.info('[head:download] No cache available, downloading...');
 			await idbSetItem(colId + ':cache', JSON.stringify([]));
 
@@ -132,10 +132,10 @@
 			await idbSetItem(colId + ':cache', JSON.stringify(remote));
 			bmcache = remote;
 			console.info('[head:download] Downloaded ' + remote.length + ' bookmarks');
-			window.SetHydrating('collection', false);
+			window.SetHydrating(false);
 		} else {
 			(async () => {
-				window.SetHydrating('collection', true);
+				window.SetHydrating(true);
 				console.info('[head:bookmarks] Downloading latest bookmarks');
 
 				const local = await ensureLocalImages(bmcache);
@@ -152,7 +152,7 @@
 				await idbSetItem(colId + ':cache', JSON.stringify(bmcache));
 
 				console.info('[head:bookmarks] Updated cache has ' + bmcache.length + ' bookmarks');
-				window.SetHydrating('collection', false);
+				window.SetHydrating(false);
 			})();
 		}
 
@@ -162,7 +162,7 @@
 
 		masonry?.recalculate();
 
-		window.SetHydrating('collection', false);
+		window.SetHydrating(false);
 	}
 
 	async function UseMasonry(): Promise<void> {
@@ -414,7 +414,14 @@
 	});
 </script>
 
-<svelte:window onpaste={(e) => newBookmark(e.clipboardData?.getData('text/plain') || '')} />
+<svelte:window
+	onkeypress={(e) => {
+		if (e.key === ' ') {
+			newBookmark(prompt('Paste a link here:', '') || '');
+		}
+	}}
+	onpaste={(e) => newBookmark(e.clipboardData?.getData('text/plain') || '')}
+/>
 
 {#if global === 'load'}
 	<content class="h-full w-full flex justify-center items-center">
@@ -426,7 +433,7 @@
 	</content>
 {:else}
 	<content
-		class="h-full w-full overflow-y-auto flex flex-col gap-2 justify-start items-start p-1 pr-6"
+		class="h-full w-full overflow-y-auto flex flex-col gap-2 justify-start items-start pt-6 pr-2"
 		role="presentation"
 		ondragover={(e: DragEvent) => {
 			e.preventDefault();
@@ -445,7 +452,8 @@
 				<div class="text-center">
 					<p class="text-lg font-medium">This collection is tidy!</p>
 					<p class="text-xs w-64">
-						You don't have any bookmarks saved here, drag and drop some links to get it to fill!
+						You don't have any bookmarks saved here, drag and drop, paste or press <kbd>space</kbd> to
+						get it to fill!
 					</p>
 				</div>
 			</div>
