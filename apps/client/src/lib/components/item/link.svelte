@@ -115,13 +115,17 @@
 			class="
 			p-2 
 			bg-white/95 
+			dark:bg-stone-950
 			backdrop-blur-xl 
 			border 
 			border-gray-200/50 
+			dark:border-stone-700/50
 			rounded-xl 
 			shadow-2xl 
 			shadow-black/10
+			dark:shadow-stone-950/10
 			text-gray-800
+			dark:text-stone-200
 			min-w-[200px]
 			animate-in 
 			fade-in-0 
@@ -129,6 +133,7 @@
 			duration-200
 			ring-1
 			ring-black/5
+			dark:ring-white/5
 		"
 		>
 			<ContextMenu.Item
@@ -158,24 +163,18 @@
 				duration-150
 				ease-out
 				hover:bg-red-50
-				focus:bg-red-50
+				dark:hover:bg-red-950
 				focus:outline-none
 				active:scale-[0.98]
 			"
 			>
 				<div class="flex items-center gap-2">
-					<!-- <Trash
-						class="
-						mr-3 
-						size-4 
-						text-gray-600
-						group-hover:text-red-600
-						transition-colors
-						duration-150
-					"
-					/> -->
 					<TrashIcon isHovered={trashHovered} strokeWidth={3} class="opacity-80" size={12} />
-					<span class="group-hover:text-red-700 transition-colors duration-150"> Delete </span>
+					<span
+						class="group-hover:text-red-700 group-hover:dark:text-red-300 transition-colors duration-150"
+					>
+						Delete
+					</span>
 				</div>
 			</ContextMenu.Item>
 		</ContextMenu.Content>
