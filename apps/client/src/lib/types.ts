@@ -11,3 +11,8 @@ export type Bookmark = {
 	_favicon_base64?: string; // (local-gen) cache of favicon in base64
 	_cover_base64?: string; // (local-gen) cache of cover in base64
 };
+
+export type Collection = {
+	id: string; // (provided) the id of the collection
+	name: string; // (provided) the name of the collection
+};
