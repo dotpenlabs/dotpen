@@ -2,7 +2,7 @@
 	class="fixed inset-0 z-50 flex flex-col gap-4 items-center justify-center bg-white dark:bg-black"
 >
 	<img src="/full.png" alt="Dotpen Logo" class="h-8 opacity-90 invert-100 dark:invert-0" />
-	<div class="w-64 h-1.5 bg-black/25 rounded-full overflow-hidden relative">
+	<div class="w-64 h-1.5 bg-black/25 dark:bg-white/25 rounded-full overflow-hidden relative">
 		<div
 			class="absolute h-full bg-black/50 dark:bg-white/50 rounded-full animate-loadingBar-alternate"
 		></div>
