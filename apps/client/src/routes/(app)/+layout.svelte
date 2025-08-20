@@ -3,7 +3,7 @@
 	import { Folder } from 'phosphor-svelte';
 
 	import { goto } from '$app/navigation';
-	import { pb, pk } from '$/lib';
+	import { pb } from '$/lib';
 	import { page } from '$app/state';
 
 	import Loading from '$/lib/components/navigation/loading.svelte';
@@ -127,9 +127,6 @@
 					return 'desktop';
 				}
 			})();
-
-			await pk.init();
-			await pk.add('nl.bijsven.dropbox');
 		} catch (e) {
 			console.error(e);
 		}
