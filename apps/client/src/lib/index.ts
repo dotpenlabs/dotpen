@@ -1,17 +1,17 @@
 import { PUBLIC_API_ENDPOINT } from '$env/static/public';
 
 import PocketBase from 'pocketbase';
-import { PluginKit } from 'pluginkit';
+// import { PluginKit } from 'pluginkit';
 
 export const pb = new PocketBase(PUBLIC_API_ENDPOINT);
 
-export const pk = new PluginKit({
-	Database: 'https://raw.githubusercontent.com/dotpenlabs/repository/main/database.json',
-	Plugins: 'https://raw.githubusercontent.com/dotpenlabs/repository/main/plugins/',
-	Permissions: ['widget:sidebar:bottom', 'pluginkit:allow-same-origin', 'app:load'],
-	ResumeAfterLoad: true,
-	AllowInsecureSameOrigin: true
-});
+// export const pk = new PluginKit({
+// 	Database: 'https://raw.githubusercontent.com/dotpenlabs/repository/main/database.json',
+// 	Plugins: 'https://raw.githubusercontent.com/dotpenlabs/repository/main/plugins/',
+// 	Permissions: ['widget:sidebar:bottom', 'pluginkit:allow-same-origin', 'app:load'],
+// 	ResumeAfterLoad: true,
+// 	AllowInsecureSameOrigin: true
+// });
 
 const DB_NAME = 'dotpen-db';
 const STORE_NAME = 'keyval';
