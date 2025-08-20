@@ -137,14 +137,33 @@
 					</p>
 				{/key}
 			</div>
-
-			{#if appstate === 'app'}
-				<p class="text-xs opacity-65">You're all set! All changes are synced.</p>
-			{:else if appstate === 'hydrating'}
-				<p class="text-xs opacity-65">Hang tight! Almost ready...</p>
-			{:else}
-				<p class="text-xs opacity-65">You are not connected, data might be outdated!</p>
-			{/if}
+			<div class="max-h-4 min-h-4 h-4 overflow-clip">
+				{#if appstate === 'app'}
+					<p
+						in:fly={{ duration: 500, y: -5 }}
+						out:fly={{ duration: 750, y: 5 }}
+						class="text-xs opacity-65"
+					>
+						You're all set! All changes are synced.
+					</p>
+				{:else if appstate === 'hydrating'}
+					<p
+						in:fly={{ duration: 500, delay: 750, y: -5 }}
+						out:fly={{ duration: 750, y: 5 }}
+						class="text-xs opacity-65"
+					>
+						Hang tight! Almost ready...
+					</p>
+				{:else}
+					<p
+						in:fly={{ duration: 500, delay: 750, y: -5 }}
+						out:fly={{ duration: 750, y: 5 }}
+						class="text-xs opacity-65"
+					>
+						You are not connected, data might be outdated!
+					</p>
+				{/if}
+			</div>
 		</div>
 	</div>
 	<div class="flex items-center gap-3 w-full opacity-50 mt-5">
@@ -187,7 +206,7 @@
 		</button>
 	</div>
 
-	<div class="flex-1 overflow-y-scroll mb-8">
+	<div class="flex-1 overflow-y-auto mb-8">
 		<div class="flex-1 overflow-y-auto flex flex-col gap-2 min-h-0">
 			{#each collections as collection}
 				<Navitem
