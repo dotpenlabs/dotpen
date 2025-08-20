@@ -18,8 +18,8 @@
         "action": "/share/",
         "method": "GET",
         "params": {
-            "title": "name",
-            "url": "link"
+            "title": "title",
+            "url": "url"
         }
     },
     "scope": "/",
