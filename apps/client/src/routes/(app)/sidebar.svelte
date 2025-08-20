@@ -7,7 +7,7 @@
 	import { pb } from '$/lib';
 	import type { Collection } from '$/lib/types';
 	import { twMerge } from 'tailwind-merge';
-	import Navitem from '$/lib/components/navigation/navitem.svelte';
+	import Navitem from '$/lib/components/navigation/collection.svelte';
 	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
 	import { flyAndScale, focus } from '$/lib/utils';

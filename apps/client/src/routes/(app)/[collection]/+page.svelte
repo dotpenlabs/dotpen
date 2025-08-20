@@ -5,14 +5,14 @@
 	import { pb } from '$/lib';
 	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
-	import { getItem as idbGetItem, setItem as idbSetItem } from '$/lib/idb';
+	import { kv } from '$/lib/index';
 
 	import type { PageData } from './$types';
 	import type { RecordModel } from 'pocketbase';
 	import type { Bookmark } from '$/lib/types';
 
 	import Link from '$/lib/components/item/link.svelte';
-	import Loading from '$/lib/components/loading.svelte';
+	import Loading from '$/lib/components/navigation/loading.svelte';
 	import { browser } from '$app/environment';
 
 	let { data: pageData }: { data: PageData } = $props();
@@ -39,7 +39,7 @@
 
 		if (colId === 'inbox') {
 			console.info('[head] This is a system inbox, additional processing is required.');
-			const inboxId = await idbGetItem('inbox:id');
+			const inboxId = await kv.get('inbox:id');
 			if (inboxId) {
 				colId = inboxId;
 			} else {
@@ -52,7 +52,7 @@
 							return e.id;
 						});
 
-					await idbSetItem('inbox:id', colId);
+					await kv.set('inbox:id', colId);
 				} catch (e) {
 					console.info('[head] No inbox found, creating one...');
 					toast.info('Welcome to Dotpen!', {
@@ -70,12 +70,12 @@
 							return e.id;
 						});
 
-					await idbSetItem('inbox:id', colId);
+					await kv.set('inbox:id', colId);
 				}
 			}
 		}
 
-		let bmcache = (await JSON.parse((await idbGetItem(colId + ':cache')) || '[]')) as Bookmark[];
+		let bmcache = (await JSON.parse((await kv.get(colId + ':cache')) || '[]')) as Bookmark[];
 		const bmheartbeat = bmcache[bmcache.length - 1]?.updated;
 
 		console.info('[head] connected to ' + colId);
@@ -119,7 +119,7 @@
 		if (!bmcache || bmcache.length === 0) {
 			window.SetHydrating(true);
 			console.info('[head:download] No cache available, downloading...');
-			await idbSetItem(colId + ':cache', JSON.stringify([]));
+			await kv.set(colId + ':cache', JSON.stringify([]));
 
 			const remote = (await pb.collection('bookmarks').getFullList({
 				filter: `collection = "${colId}" && deleted = false`,
@@ -129,7 +129,7 @@
 			await ensureLocalImages(remote);
 			console.info('[head:bookmarks] Downloaded ' + remote.length + ' bookmarks');
 
-			await idbSetItem(colId + ':cache', JSON.stringify(remote));
+			await kv.set(colId + ':cache', JSON.stringify(remote));
 			bmcache = remote;
 			console.info('[head:download] Downloaded ' + remote.length + ' bookmarks');
 			window.SetHydrating(false);
@@ -149,7 +149,7 @@
 				await ensureLocalImages(remote);
 				const ubi = new Map([...local, ...remote].map((bm) => [bm.id, bm]));
 				bmcache = Array.from(ubi.values()).filter((bm) => !bm.deleted);
-				await idbSetItem(colId + ':cache', JSON.stringify(bmcache));
+				await kv.set(colId + ':cache', JSON.stringify(bmcache));
 
 				console.info('[head:bookmarks] Updated cache has ' + bmcache.length + ' bookmarks');
 				window.SetHydrating(false);
@@ -336,7 +336,7 @@
 
 		// - Finishing up -
 		bookmarks.unshift(record);
-		await idbSetItem(colId + ':cache', JSON.stringify(bookmarks));
+		await kv.set(colId + ':cache', JSON.stringify(bookmarks));
 		toast.dismiss(loading);
 
 		window.SetColored('green');
@@ -347,7 +347,7 @@
 		if (!bm) return;
 
 		bookmarks = bookmarks.filter((m) => m.id !== item.id);
-		await idbSetItem(colId + ':cache', JSON.stringify(bookmarks));
+		await kv.set(colId + ':cache', JSON.stringify(bookmarks));
 
 		await tick();
 
@@ -364,7 +364,7 @@
 					await pb.collection('bookmarks').update(bm.id, {
 						deleted: true
 					});
-					await idbSetItem(colId + ':cache', JSON.stringify(bookmarks));
+					await kv.set(colId + ':cache', JSON.stringify(bookmarks));
 					window.SetColored('red');
 				} else {
 					toast.error('Failed to delete bookmark! (local error)');
@@ -383,7 +383,7 @@
 					confirmed = false;
 					try {
 						bookmarks = [bm, ...bookmarks];
-						await idbSetItem(colId + ':cache', JSON.stringify(bookmarks));
+						await kv.set(colId + ':cache', JSON.stringify(bookmarks));
 						await tick();
 						requestAnimationFrame(async () => {
 							await masonry?.recalculate(true);

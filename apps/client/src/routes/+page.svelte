@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { pb } from '$/lib';
-	import Loading from '$/lib/components/loading.svelte';
+	import Loading from '$/lib/components/navigation/loading.svelte';
+	import { kv } from '$/lib/index';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import { getItem as idbGetItem, setItem as idbSetItem } from '$/lib/idb';
 
 	onMount(async () => {
 		if (!pb.authStore.isValid) {
@@ -18,14 +18,14 @@
 				});
 				let needsCache = false;
 				for (const col of collections) {
-					const cache = await idbGetItem(col.id + ':cache');
+					const cache = await kv.get(col.id + ':cache');
 					if (!cache) {
 						needsCache = true;
 						const bookmarks = await pb.collection('bookmarks').getFullList({
 							filter: `collection = "${col.id}" && deleted = false`,
 							sort: '-created'
 						});
-						await idbSetItem(col.id + ':cache', JSON.stringify(bookmarks));
+						await kv.set(col.id + ':cache', JSON.stringify(bookmarks));
 					}
 				}
 
@@ -34,15 +34,15 @@
 						.collection('collections')
 						.getFirstListItem("name = 'system_inbox'")
 						.then((e) => e.id);
-					const inboxCache = await idbGetItem(inboxId + ':cache');
+					const inboxCache = await kv.get(inboxId + ':cache');
 					if (!inboxCache) {
 						needsCache = true;
 						const inboxBookmarks = await pb.collection('bookmarks').getFullList({
 							filter: `collection = "${inboxId}" && deleted = false`,
 							sort: '-created'
 						});
-						await idbSetItem(inboxId + ':cache', JSON.stringify(inboxBookmarks));
-						await idbSetItem('inbox:id', inboxId);
+						await kv.set(inboxId + ':cache', JSON.stringify(inboxBookmarks));
+						await kv.set('inbox:id', inboxId);
 					}
 					if (needsCache) {
 						location.reload();

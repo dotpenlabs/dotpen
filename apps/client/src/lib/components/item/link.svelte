@@ -6,7 +6,7 @@
 	import { goto } from '$app/navigation';
 	import type { Bookmark } from '$/lib/types';
 	import { pb } from '$/lib';
-	import TrashIcon from '../movingicons/trash.svelte';
+	import TrashIcon from '../icons/trash.svelte';
 
 	let trashHovered = $state(false);
 

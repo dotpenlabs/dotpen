@@ -3,7 +3,7 @@
 	import { page } from '$app/state';
 	import { ContextMenu } from 'bits-ui';
 	import Trash from 'phosphor-svelte/lib/Trash';
-	import TrashIcon from '$lib/components/movingicons/trash.svelte';
+	import TrashIcon from '$/lib/components/icons/trash.svelte';
 	import { Folder } from 'phosphor-svelte';
 
 	interface NavItemProps {

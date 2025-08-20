@@ -1,22 +1,14 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
-	import { PaneGroup } from 'paneforge';
-	import { Folder, MagnifyingGlass, PuzzlePiece, Tray } from 'phosphor-svelte';
+	import { Folder } from 'phosphor-svelte';
 
-	import { flyAndScale } from '$/lib/utils';
-	import { fade, fly } from 'svelte/transition';
-	import { toast } from 'svelte-sonner';
-
-	import { focus } from '$/lib/utils';
 	import { goto } from '$app/navigation';
-	import { pb } from '$/lib';
+	import { pb, pk } from '$/lib';
 	import { page } from '$app/state';
 
-	import Loading from '$/lib/components/loading.svelte';
-	import Item from '$lib/components/navigation/navitem.svelte';
+	import Loading from '$/lib/components/navigation/loading.svelte';
 	import type { Collection } from '$/lib/types';
 	import { navigating } from '$app/state';
-	import Appwrap from './colorwrap.svelte';
 	import Colorwrap from './colorwrap.svelte';
 	import Sidebar from './sidebar.svelte';
 
@@ -35,98 +27,101 @@
 	};
 
 	onMount(async () => {
-		console.log('[/app/auth] checking authenication');
-		if (!pb.authStore.isValid) {
-			console.warn('[/app/auth] not authenticated, redirecting to /auth');
-			goto('/auth');
-			return;
-		} else {
-			console.log(`[/app/auth] Welcome back, ${pb.authStore.record.name}!`);
-		}
+		// console.log('[/app/auth] checking authenication');
+		// if (!pb.authStore.isValid) {
+		// 	console.warn('[/app/auth] not authenticated, redirecting to /auth');
+		// 	goto('/auth');
+		// 	return;
+		// } else {
+		// 	console.log(`[/app/auth] Welcome back, ${pb.authStore.record.name}!`);
+		// }
 
-		console.log('[/app/colcache] checking collection-cache');
-		const cached = localStorage.getItem(KEYS.COLCACHE);
-		let ucache = false;
-		if (cached) {
-			const d = JSON.parse(cached);
-			if (Array.isArray(d)) {
-				collections = d as Collection[];
-			}
-			ucache = true;
-			console.log('[/app/colcache] cache found, loading collections');
-		} else {
-			console.log('[/app/colcache] cache not found, starting bg fetch');
-			const result = await pb
-				.collection('collections')
-				.getFullList({
-					filter: `user = "${pb.authStore.model?.id}" && name != "system_inbox"`,
-					sort: 'created'
-				})
-				.then((res) => {
-					return res.map((col) => ({
-						id: col.id,
-						name: col.name,
-						icon: Folder,
-						url: `/${col.id}`
-					}));
-				});
-			collections = result as Collection[];
+		// console.log('[/app/colcache] checking collection-cache');
+		// const cached = localStorage.getItem(KEYS.COLCACHE);
+		// let ucache = false;
+		// if (cached) {
+		// 	const d = JSON.parse(cached);
+		// 	if (Array.isArray(d)) {
+		// 		collections = d as Collection[];
+		// 	}
+		// 	ucache = true;
+		// 	console.log('[/app/colcache] cache found, loading collections');
+		// } else {
+		// 	console.log('[/app/colcache] cache not found, starting bg fetch');
+		// 	const result = await pb
+		// 		.collection('collections')
+		// 		.getFullList({
+		// 			filter: `user = "${pb.authStore.model?.id}" && name != "system_inbox"`,
+		// 			sort: 'created'
+		// 		})
+		// 		.then((res) => {
+		// 			return res.map((col) => ({
+		// 				id: col.id,
+		// 				name: col.name,
+		// 				icon: Folder,
+		// 				url: `/${col.id}`
+		// 			}));
+		// 		});
+		// 	collections = result as Collection[];
 
-			console.log('[/app/colcache] saving collection-cache');
-			localStorage.setItem(KEYS.COLCACHE, JSON.stringify(collections));
-			console.log('[/app/colcache] collection-cache saved');
-			console.log('Collections loaded:', collections);
-		}
+		// 	console.log('[/app/colcache] saving collection-cache');
+		// 	localStorage.setItem(KEYS.COLCACHE, JSON.stringify(collections));
+		// 	console.log('[/app/colcache] collection-cache saved');
+		// 	console.log('Collections loaded:', collections);
+		// }
 
-		(async () => {
-			if (ucache) {
-				console.log('[/app/colcache] updating cache');
-				const result = await pb
-					.collection('collections')
-					.getFullList({
-						filter: `user = "${pb.authStore.model?.id}" && name != "system_inbox"`,
-						sort: 'created'
-					})
-					.then((res) => {
-						return res.map((col) => ({
-							id: col.id,
-							name: col.name,
-							icon: Folder,
-							url: `/${col.id}`
-						}));
-					});
-				collections = result as Collection[];
+		// (async () => {
+		// 	if (ucache) {
+		// 		console.log('[/app/colcache] updating cache');
+		// 		const result = await pb
+		// 			.collection('collections')
+		// 			.getFullList({
+		// 				filter: `user = "${pb.authStore.model?.id}" && name != "system_inbox"`,
+		// 				sort: 'created'
+		// 			})
+		// 			.then((res) => {
+		// 				return res.map((col) => ({
+		// 					id: col.id,
+		// 					name: col.name,
+		// 					icon: Folder,
+		// 					url: `/${col.id}`
+		// 				}));
+		// 			});
+		// 		collections = result as Collection[];
 
-				console.log('[/app/colcache] saving collection-cache');
-				localStorage.setItem(KEYS.COLCACHE, JSON.stringify(collections));
+		// 		console.log('[/app/colcache] saving collection-cache');
+		// 		localStorage.setItem(KEYS.COLCACHE, JSON.stringify(collections));
 
-				console.log('Collections loaded:', collections);
-			}
-		})();
+		// 		console.log('Collections loaded:', collections);
+		// 	}
+		// })();
 
-		window.SetHydrating = (value: boolean) => {
-			appstate = value ? 'hydrating' : appstate === 'hydrating' ? 'app' : appstate;
-		};
+		// window.SetHydrating = (value: boolean) => {
+		// 	appstate = value ? 'hydrating' : appstate === 'hydrating' ? 'app' : appstate;
+		// };
 
-		window.SetColored = (isColored: 'default' | 'green' | 'red') => {
-			appcolor = isColored;
-			setTimeout(() => {
-				appcolor = 'default';
-			}, 1500);
-		};
+		// window.SetColored = (isColored: 'default' | 'green' | 'red') => {
+		// 	appcolor = isColored;
+		// 	setTimeout(() => {
+		// 		appcolor = 'default';
+		// 	}, 1500);
+		// };
 
-		setTitle();
+		// setTitle();
 
-		appstate = 'app';
+		// appstate = 'app';
 
-		appplatform = (() => {
-			// use md (in tailwind) for the correct width breakpoint.
-			if (window.innerWidth < 768) {
-				return 'mobile';
-			} else {
-				return 'desktop';
-			}
-		})();
+		// appplatform = (() => {
+		// 	// use md (in tailwind) for the correct width breakpoint.
+		// 	if (window.innerWidth < 768) {
+		// 		return 'mobile';
+		// 	} else {
+		// 		return 'desktop';
+		// 	}
+		// })();
+
+		await pk.init();
+		await pk.add('nl.bijsven.dropbox');
 	});
 
 	$effect(() => {
@@ -155,7 +150,8 @@
 {#if appstate === 'app_loading'}
 	<Loading />
 {:else}
-	<Colorwrap {appplatform} {appcolor}>
+	<pk-widget location="sidebar:bottom"></pk-widget>
+	<!-- <Colorwrap {appplatform} {appcolor}>
 		<content
 			data-vaul-drawer-wrapper
 			class="h-full w-full flex bg-white dark:bg-stone-950 overflow-y-auto rounded-xl border border-stone-200 dark:border-stone-800"
@@ -172,5 +168,5 @@
 				<Sidebar bind:collections {appstate} {appplatform} {sidebarloc} />
 			{/if}
 		</content>
-	</Colorwrap>
+	</Colorwrap> -->
 {/if}

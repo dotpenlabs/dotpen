@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Drawer } from 'vaul-svelte';
-	import Loading from '$/lib/components/loading.svelte';
+	import Loading from '$/lib/components/navigation/loading.svelte';
 	import { onMount } from 'svelte';
 	import { pb } from '$/lib';
 	import { toast } from 'svelte-sonner';
