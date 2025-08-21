@@ -160,7 +160,8 @@
 		bookmarks = bmcache;
 		token = await pb.files.getToken();
 
-		masonry?.recalculate();
+		await tick();
+		requestAnimationFrame(() => masonry?.recalculate(true));
 
 		window.SetHydrating(false);
 	}
@@ -188,13 +189,38 @@
 			masonry = new Macy({
 				container,
 				trueOrder: true,
-				waitForImages: false,
+				waitForImages: true,
 				useOwnImageLoader: false,
 				useContainerForBreakpoints: true,
 				mobileFirst: true,
 				columns: 1,
 				margin: { y: 16, x: '2%' },
-				breakAt: { 1400: 5, 1100: 4, 800: 3, 520: 2 }
+				breakAt: {
+					6000: 17,
+					5500: 16,
+					5000: 15,
+					4500: 14,
+					4200: 13,
+					4000: 12,
+					3500: 11,
+					3000: 10,
+					2500: 9,
+					2200: 8,
+					2000: 7,
+					1800: 6,
+					1600: 6,
+					1400: 5,
+					1300: 5,
+					1200: 4,
+					1100: 4,
+					1000: 3,
+					900: 3,
+					800: 3,
+					700: 2,
+					600: 2,
+					525: 2,
+					500: 1
+				}
 			});
 
 			requestAnimationFrame(() => masonry.recalculate());
@@ -433,7 +459,7 @@
 	</content>
 {:else}
 	<content
-		class="h-full w-full overflow-y-auto flex flex-col gap-2 justify-start items-start pt-6 pr-2"
+		class="h-full w-full overflow-y-auto flex pt-6 pr-2"
 		role="presentation"
 		ondragover={(e: DragEvent) => {
 			e.preventDefault();
@@ -458,19 +484,21 @@
 				</div>
 			</div>
 		{:else}
-			<div id="main-content" class="w-full min-h-full h-fit">
+			<div id="main-content" class="w-full">
 				{#each bookmarks as item, idx (item.id)}
-					<Link
-						removeItemCallback={(e: Event) => {
-							requestAnimationFrame(() => {
-								masonry?.recalculate(true);
-							});
-						}}
-						removeItem={() => removeBookmark(item)}
-						data={item}
-						index={idx}
-						filetoken={token}
-					/>
+					<div>
+						<Link
+							removeItemCallback={(e: Event) => {
+								requestAnimationFrame(() => {
+									masonry?.recalculate(true);
+								});
+							}}
+							removeItem={() => removeBookmark(item)}
+							data={item}
+							index={idx}
+							filetoken={token}
+						/>
+					</div>
 				{/each}
 			</div>
 		{/if}
