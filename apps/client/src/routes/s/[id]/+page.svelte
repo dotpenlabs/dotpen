@@ -51,7 +51,7 @@
 
 		masonry = new Macy({
 			container,
-			trueOrder: true,
+			trueOrder: false,
 			waitForImages: true,
 			useOwnImageLoader: false,
 			useContainerForBreakpoints: true,
