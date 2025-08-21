@@ -440,14 +440,7 @@
 	});
 </script>
 
-<svelte:window
-	onkeypress={(e) => {
-		if (e.key === ' ') {
-			newBookmark(prompt('Paste a link here:', '') || '');
-		}
-	}}
-	onpaste={(e) => newBookmark(e.clipboardData?.getData('text/plain') || '')}
-/>
+<svelte:window onpaste={(e) => newBookmark(e.clipboardData?.getData('text/plain') || '')} />
 
 {#if global === 'load'}
 	<content class="h-full w-full flex justify-center items-center">

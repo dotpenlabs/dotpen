@@ -12,9 +12,10 @@
 		label: string;
 		removeCollection?: () => void;
 		onSelect?: (payload: { id: string; label: string }) => void;
+		shareSnapshot?: () => void;
 	}
 
-	let { id, label, icon: Icon, removeCollection, onSelect }: NavItemProps = $props();
+	let { id, label, icon: Icon, removeCollection, onSelect, shareSnapshot }: NavItemProps = $props();
 	let trashHovered = $state(false);
 
 	function handleClick() {
@@ -65,6 +66,19 @@
 			}}
 			class="p-2 bg-white/95 dark:bg-stone-950 backdrop-blur-xl border border-gray-200/50 dark:border-stone-700/50 rounded-xl shadow-2xl shadow-black/10 dark:shadow-stone-950/10 text-gray-800 dark:text-stone-200 min-w-[200px] animate-in fade-in-0 zoom-in-95 duration-200 ring-1 ring-black/5 dark:ring-white/5"
 		>
+			<ContextMenu.Item
+				onclick={() => shareSnapshot?.()}
+				class="group flex items-center justify-between h-9 px-3 py-2 text-sm font-medium rounded-lg cursor-pointer select-none transition-all duration-150 ease-out hover:bg-stone-50 dark:hover:bg-stone-900 focus:outline-none active:scale-[0.98]"
+			>
+				<div class="flex items-center gap-2">
+					<span class="opacity-80">🔗</span>
+					<span
+						class="group-hover:text-stone-900 group-hover:dark:text-stone-100 transition-colors duration-150"
+					>
+						Share snapshot
+					</span>
+				</div>
+			</ContextMenu.Item>
 			<ContextMenu.Item
 				onclick={removeCollection}
 				class="group flex items-center justify-between h-9 px-3 py-2 text-sm font-medium rounded-lg cursor-pointer select-none transition-all duration-150 ease-out hover:bg-red-50 dark:hover:bg-red-950 focus:bg-red-50 focus:outline-none active:scale-[0.98]"

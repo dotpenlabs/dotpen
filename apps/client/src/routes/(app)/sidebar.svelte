@@ -4,7 +4,7 @@
 	import { fly } from 'svelte/transition';
 
 	import { goto } from '$app/navigation';
-	import { pb } from '$/lib';
+	import { pb, kv } from '$/lib';
 	import type { Collection } from '$/lib/types';
 	import { twMerge } from 'tailwind-merge';
 	import Navitem from '$/lib/components/navigation/collection.svelte';
@@ -194,6 +194,59 @@
 				description: 'What would you do without an inbox? 😨'
 			});
 		}}
+		shareSnapshot={async () => {
+			try {
+				let inboxId = '';
+				try {
+					inboxId = (await kv.get('inbox:id')) || '';
+				} catch {}
+				if (!inboxId) {
+					try {
+						inboxId = await pb
+							.collection('collections')
+							.getFirstListItem("name = 'system_inbox'")
+							.then((e) => e.id as string);
+					} catch {}
+				}
+
+				if (!inboxId) {
+					toast.error('Kon Inbox niet vinden om te delen.');
+					return;
+				}
+
+				let data: any[] = [];
+				try {
+					data = JSON.parse((await kv.get(inboxId + ':cache')) || '[]') || [];
+				} catch {}
+
+				const items = (data || []).map((b: any) => ({
+					label: b.label,
+					link: b.link,
+					created: b.created,
+					_favicon_base64: b._favicon_base64,
+					_cover_base64: b._cover_base64
+				}));
+
+				if (!items.length) {
+					toast.error('Niets om te delen in deze collectie.');
+					return;
+				}
+
+				const snapshot = await pb.collection('snapshots').create({
+					name: 'Inbox',
+					user: pb.authStore.record?.id,
+					collection: inboxId,
+					data: items
+				});
+
+				const shareUrl = `${location.origin}/s/${snapshot.slug || snapshot.id}`;
+				await navigator.clipboard.writeText(shareUrl);
+				toast.success('Snapshot link copied to clipboard!', { description: shareUrl });
+			} catch (e) {
+				console.error('Failed to create snapshot (inbox)', e);
+				toast.error('Failed to share snapshot');
+			}
+		}}
 	/>
 	<div class="flex items-center gap-3 w-full opacity-50 mt-5 mb-1">
 		{@render divider('Collections')}
@@ -227,6 +280,42 @@
 						} catch (err) {
 							console.error('Failed to delete collection', err);
 							toast.error('Failed to delete collection!');
+						}
+					}}
+					shareSnapshot={async () => {
+						try {
+							const cacheKey = `${collection.id}:cache`;
+							let data: any[] = [];
+							try {
+								data = JSON.parse((await kv.get(cacheKey)) || '[]') || [];
+							} catch {}
+
+							const items = (data || []).map((b: any) => ({
+								label: b.label,
+								link: b.link,
+								created: b.created,
+								_favicon_base64: b._favicon_base64,
+								_cover_base64: b._cover_base64
+							}));
+
+							if (!items.length) {
+								toast.error('Niets om te delen in deze collectie.');
+								return;
+							}
+
+							const snapshot = await pb.collection('snapshots').create({
+								name: collection.name,
+								user: pb.authStore.record?.id,
+								collection: collection.id,
+								data: items
+							});
+
+							const shareUrl = `${location.origin}/s/${snapshot.slug || snapshot.id}`;
+							await navigator.clipboard.writeText(shareUrl);
+							toast.success('Snapshot link copied to clipboard!', { description: shareUrl });
+						} catch (e) {
+							console.error('Failed to create snapshot', e);
+							toast.error('Failed to create snapshot');
 						}
 					}}
 				/>
