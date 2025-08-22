@@ -186,6 +186,46 @@
 		<p>Snapshot does not exist.</p>
 	</div>
 {:else}
+	<div
+		class="z-[999] fixed bottom-6 left-1/2 transform -translate-x-1/2 flex flex-col sm:flex-row items-center justify-between w-full max-w-3xl h-auto bg-black/65 backdrop-blur-xl rounded-2xl border border-white/10 px-4 sm:px-6 py-4 sm:py-6 shadow-lg"
+	>
+		<div class="flex items-center gap-4 sm:gap-6 w-full sm:w-auto">
+			<div class="-space-y-1">
+				<div class="flex items-center gap-2">
+					<h3 class="text-white text-lg font-medium !font-sans tracking-tight">
+						Shared collections
+					</h3>
+				</div>
+				<p class="text-white/60 !font-sans text-xs sm:w-96 font-normal leading-5">
+					Create collections in your own style and instantly share them with friends, teammates, or
+					anyone you like.<br /><br />
+					Shared on {new Date(snapshot?.created).toLocaleDateString()} at {new Date(
+						snapshot?.created
+					).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.
+				</p>
+			</div>
+		</div>
+
+		<div class="flex items-center gap-2 sm:gap-4 w-full sm:w-auto mt-4 sm:mt-0 justify-end">
+			<a
+				href="mailto:report@bijsven.nl"
+				title="Report content"
+				class="text-white/30 text-xs hover:text-orange-500 transition-colors duration-200 !font-sans text-nowrap"
+			>
+				<Warning weight="bold" class="w-4 h-4 mr-1" />
+			</a>
+			<a
+				href="/"
+				class="inline-flex items-center justify-center bg-white text-gray-900 text-sm font-medium px-4 py-2 rounded-xl hover:bg-white/90 transition-all duration-200 !font-sans whitespace-nowrap"
+			>
+				{#if !pb.authStore.isValid}
+					Try Dotpen
+				{:else}
+					Open Dotpen
+				{/if}
+			</a>
+		</div>
+	</div>
 	<div class="min-h-full w-full flex flex-col pt-6 gap-6 px-12 pb-44">
 		<div id="snapshot-content" class="w-full px-4">
 			{#each snapshot?.data || [] as item, idx (item.id || idx)}
