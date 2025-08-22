@@ -70,6 +70,46 @@
 		open: false
 	});
 
+	async function handleSidebarDrop(e: DragEvent) {
+		e.preventDefault();
+
+		try {
+			const url = e.dataTransfer?.getData('text/plain');
+			if (url && url.startsWith('http')) {
+				let inboxId = '';
+				try {
+					inboxId = (await kv.get('inbox:id')) || '';
+				} catch {}
+				if (!inboxId) {
+					try {
+						inboxId = await pb
+							.collection('collections')
+							.getFirstListItem("name = 'system_inbox'")
+							.then((e) => e.id as string);
+					} catch {}
+				}
+
+				if (inboxId) {
+					goto(`/${inboxId}?url=${encodeURIComponent(url)}`);
+				}
+			}
+		} catch (error) {
+			console.error('Failed to handle sidebar drop:', error);
+		}
+	}
+
+	function handleSidebarDragOver(e: DragEvent) {
+		e.preventDefault();
+		if (e.dataTransfer) {
+			const url = e.dataTransfer.getData('text/plain');
+			if (url && url.startsWith('http')) {
+				e.dataTransfer.dropEffect = 'copy';
+			} else {
+				e.dataTransfer.dropEffect = 'none';
+			}
+		}
+	}
+
 	onMount(() => {
 		intro = intros[Math.floor(Math.random() * intros.length)];
 		intro = intro.replace('$0', pb.authStore.record.name.split(' ')[0]);
@@ -104,7 +144,11 @@
 	{/if}
 {/snippet}
 
-<div class="h-full w-full max-w-sm px-8 flex flex-col">
+<div
+	class="h-full w-full max-w-sm px-8 flex flex-col"
+	ondragover={handleSidebarDragOver}
+	ondrop={handleSidebarDrop}
+>
 	<div
 		class={twMerge(
 			'flex gap-1 justify-between items-center pt-8',

@@ -431,6 +431,13 @@
 		if (bookmarks.length > 0) {
 			UseMasonry();
 		}
+
+		const urlParams = new URLSearchParams(window.location.search);
+		const urlToAdd = urlParams.get('url');
+		if (urlToAdd) {
+			window.history.replaceState({}, '', window.location.pathname);
+			await newBookmark(urlToAdd);
+		}
 	});
 	$effect(() => void main());
 	$effect(() => {

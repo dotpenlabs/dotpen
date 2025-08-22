@@ -33,6 +33,35 @@
 		removeItemCallback?: (e: Event) => void;
 		filetoken: string;
 	} = $props();
+
+	function handleDragStart(e: DragEvent) {
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData(
+				'application/json',
+				JSON.stringify({
+					id: item.id,
+					label: item.label,
+					link: item.link,
+					collection: item.collection,
+					type: 'bookmark'
+				})
+			);
+			e.dataTransfer.setData('text/plain', item.link);
+
+			if (e.target instanceof HTMLElement) {
+				e.target.style.opacity = '0.5';
+				e.target.style.transform = 'rotate(0deg) scale(0.95)';
+			}
+		}
+	}
+
+	function handleDragEnd(e: DragEvent) {
+		if (e.target instanceof HTMLElement) {
+			e.target.style.opacity = '';
+			e.target.style.transform = '';
+		}
+	}
 </script>
 
 <ContextMenu.Root>
@@ -43,7 +72,10 @@
 				window.open(item.link, '_blank');
 			}}
 			data-packed={index}
-			class="text-wrap group cursor-pointer bg-white w-full sm:w-64 overflow-hidden h-min dark:bg-stone-950 rounded-xl p-3 sm:p-5 shadow-sm hover:shadow-lg dark:shadow-none border border-zinc-200 dark:border-stone-700/50 duration-300 hover:scale-102 active:scale-98"
+			draggable="true"
+			ondragstart={handleDragStart}
+			ondragend={handleDragEnd}
+			class="text-wrap group cursor-grab active:cursor-grabbing bg-white w-full sm:w-64 overflow-hidden h-min dark:bg-stone-950 rounded-xl p-3 sm:p-5 shadow-sm hover:shadow-lg dark:shadow-none border border-zinc-200 dark:border-stone-700/50 duration-300 hover:scale-102 active:scale-98"
 			in:fly|global={{ y: 20, duration: 300, delay: Math.min(index * 50, 600) }}
 			out:fly|global={{ y: 10, duration: 150 }}
 			onoutroend={(e) => removeItemCallback(e)}

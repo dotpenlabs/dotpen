@@ -5,6 +5,8 @@
 	import Trash from 'phosphor-svelte/lib/Trash';
 	import TrashIcon from '$/lib/components/icons/trash.svelte';
 	import { Folder } from 'phosphor-svelte';
+	import { pb, kv } from '$/lib';
+	import { toast } from 'svelte-sonner';
 
 	interface NavItemProps {
 		id: string;
@@ -17,6 +19,7 @@
 
 	let { id, label, icon: Icon, removeCollection, onSelect, shareSnapshot }: NavItemProps = $props();
 	let trashHovered = $state(false);
+	let isDragOver = $state(false);
 
 	function handleClick() {
 		let accessed = JSON.parse(localStorage.getItem('track:accessed') || '{}');
@@ -37,14 +40,112 @@
 		localStorage.setItem('track:accessed', JSON.stringify(accessed));
 		onSelect?.({ id, label });
 	}
+
+	async function handleDrop(e: DragEvent) {
+		e.preventDefault();
+		isDragOver = false;
+
+		try {
+			const jsonData = e.dataTransfer?.getData('application/json');
+			if (jsonData) {
+				const bookmarkData = JSON.parse(jsonData);
+
+				if (bookmarkData.type === 'bookmark' && bookmarkData.collection !== id) {
+					await pb.collection('bookmarks').update(bookmarkData.id, {
+						collection: id
+					});
+
+					const cacheKey = `${bookmarkData.collection}:cache`;
+					let sourceCache: any[] = [];
+					try {
+						sourceCache = JSON.parse((await kv.get(cacheKey)) || '[]') || [];
+					} catch {}
+
+					sourceCache = sourceCache.filter((item: any) => item.id !== bookmarkData.id);
+					await kv.set(cacheKey, JSON.stringify(sourceCache));
+
+					const targetCacheKey = `${id}:cache`;
+					let targetCache: any[] = [];
+					try {
+						targetCache = JSON.parse((await kv.get(targetCacheKey)) || '[]') || [];
+					} catch {}
+
+					const bookmarkToMove = {
+						...bookmarkData,
+						collection: id,
+						updated: new Date().toISOString()
+					};
+
+					targetCache.unshift(bookmarkToMove);
+					await kv.set(targetCacheKey, JSON.stringify(targetCache));
+
+					toast.success(`Link moved to ${label}!`);
+
+					if (page.url.pathname === `/${bookmarkData.collection}`) {
+						window.location.reload();
+					}
+				} else if (bookmarkData.collection === id) {
+					toast.info('Link is already in this collection');
+				}
+			}
+		} catch (error) {
+			console.error('Failed to move bookmark:', error);
+			toast.error('Failed to move link');
+		}
+	}
+
+	function handleDragOver(e: DragEvent) {
+		e.preventDefault();
+		if (e.dataTransfer) {
+			const jsonData = e.dataTransfer.getData('application/json');
+			if (jsonData) {
+				try {
+					const bookmarkData = JSON.parse(jsonData);
+					if (bookmarkData.type === 'bookmark' && bookmarkData.collection !== id) {
+						e.dataTransfer.dropEffect = 'move';
+						return;
+					}
+				} catch {}
+			}
+			e.dataTransfer.dropEffect = 'none';
+		}
+	}
+
+	function handleDragEnter(e: DragEvent) {
+		e.preventDefault();
+		const jsonData = e.dataTransfer?.getData('application/json');
+		if (jsonData) {
+			try {
+				const bookmarkData = JSON.parse(jsonData);
+				if (bookmarkData.type === 'bookmark' && bookmarkData.collection !== id) {
+					isDragOver = true;
+				}
+			} catch {}
+		}
+	}
+
+	function handleDragLeave(e: DragEvent) {
+		e.preventDefault();
+		if (e.currentTarget instanceof Element && e.relatedTarget instanceof Node) {
+			if (!e.currentTarget.contains(e.relatedTarget)) {
+				isDragOver = false;
+			}
+		}
+	}
 </script>
 
 <ContextMenu.Root>
 	<ContextMenu.Trigger>
 		<a
 			href={id}
-			class="flex h-7 items-center relative gap-2 cursor-pointer w-full duration-200 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg p-1 pl-2"
+			class="flex h-7 items-center relative gap-2 w-full duration-200 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg p-1 pl-2 transition-all {isDragOver
+				? 'bg-blue-100 dark:bg-blue-900/30 border-2 border-blue-300 dark:border-blue-600 scale-105 shadow-lg cursor-copy'
+				: 'cursor-pointer'}"
 			onclick={handleClick}
+			ondragover={handleDragOver}
+			ondrop={handleDrop}
+			ondragenter={handleDragEnter}
+			ondragleave={handleDragLeave}
 		>
 			{#if page.url.pathname === `/${id}`}
 				<div
@@ -54,6 +155,17 @@
 			{/if}
 			<Icon class="min-h-4 min-w-4 size-4 opacity-80" />
 			<p class="text-sm text-left truncate pr-12">{label}</p>
+			{#if isDragOver}
+				<div
+					class="absolute inset-0 bg-blue-200/20 dark:bg-blue-800/20 rounded-lg pointer-events-none transition-all duration-200 flex items-center justify-center"
+				>
+					<div
+						class="text-xs font-medium text-blue-700 dark:text-blue-300 bg-white/80 dark:bg-black/80 px-2 py-1 rounded-full"
+					>
+						Drop here
+					</div>
+				</div>
+			{/if}
 		</a>
 	</ContextMenu.Trigger>
 	<ContextMenu.Portal>
