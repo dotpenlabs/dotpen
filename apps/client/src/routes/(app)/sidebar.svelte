@@ -197,6 +197,11 @@
 			});
 		}}
 		shareSnapshot={async () => {
+			const toastId = toast.loading('Sharing your collection...', {
+				description: 'Please wait as we are preparing your snapshot...',
+				duration: Infinity
+			});
+
 			try {
 				let inboxId = '';
 				try {
@@ -234,11 +239,6 @@
 					return;
 				}
 
-				const toastId = toast.loading('Starting upload...', {
-					description: 'Please wait, connecting...',
-					duration: Infinity
-				});
-
 				const snapshot = await pb.collection('snapshots').create(
 					{
 						name: 'Inbox',
@@ -272,7 +272,7 @@
 								return new Response(response.data, {
 									status: response.status,
 									statusText: response.statusText,
-									headers: new Headers(response.headers)
+									headers: new Headers(Object.entries(response.headers))
 								});
 							} catch (error: any) {
 								throw new TypeError('Network request failed');
