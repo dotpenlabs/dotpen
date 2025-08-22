@@ -12,6 +12,8 @@
 	import { toast } from 'svelte-sonner';
 	import { flyAndScale, focus } from '$/lib/utils';
 
+	import axios from 'axios';
+
 	let intro = $state('');
 	const intros = [
 		'Hey there, $0',
@@ -232,13 +234,54 @@
 					return;
 				}
 
-				const snapshot = await pb.collection('snapshots').create({
-					name: 'Inbox',
-					user: pb.authStore.record?.id,
-					collection: inboxId,
-					data: items
+				const toastId = toast.loading('Starting upload...', {
+					description: 'Please wait, connecting...',
+					duration: Infinity
 				});
 
+				const snapshot = await pb.collection('snapshots').create(
+					{
+						name: 'Inbox',
+						user: pb.authStore.record?.id,
+						collection: inboxId,
+						data: items
+					},
+					{
+						fetch: async (url, config) => {
+							const axiosConfig: any = {
+								method: config?.method || 'GET',
+								url,
+								headers: config?.headers,
+								data: config?.body,
+								onUploadProgress: (progressEvent: ProgressEvent) => {
+									if (progressEvent.lengthComputable) {
+										const percent = (progressEvent.loaded / progressEvent.total) * 100;
+										console.log(`Upload: ${percent.toFixed(2)}%`);
+										toast.loading(`Uploading data... ${percent.toFixed(2)}%`, {
+											description: 'This could take a while, please wait...',
+											duration: Infinity,
+											id: toastId
+										});
+									}
+								},
+								responseType: 'text'
+							};
+
+							try {
+								const response = await axios(axiosConfig);
+								return new Response(response.data, {
+									status: response.status,
+									statusText: response.statusText,
+									headers: new Headers(response.headers)
+								});
+							} catch (error: any) {
+								throw new TypeError('Network request failed');
+							}
+						}
+					}
+				);
+
+				toast.dismiss(toastId);
 				const shareUrl = `${location.origin}/s/${snapshot.slug || snapshot.id}`;
 				await navigator.clipboard.writeText(shareUrl);
 				toast.success('Snapshot link copied to clipboard!', { description: shareUrl });
