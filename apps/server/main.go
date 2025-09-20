@@ -3,9 +3,7 @@ package main
 import (
 	"embed"
 	"log"
-	"net/mail"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -16,7 +14,6 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/plugins/jsvm"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
-	"github.com/pocketbase/pocketbase/tools/mailer"
 	"github.com/pocketbase/pocketbase/tools/types"
 
 	"dotpen.co/server/hooks/modules"
@@ -49,10 +46,6 @@ func main() {
 		}).Bind(apis.RequireAuth())
 
 		se.Router.GET("/{path...}", apis.Static(os.DirFS("./public"), false))
-		se.Router.GET("/_/images/{path...}", func(e *core.RequestEvent) error {
-			staticFS := os.DirFS("./public/assets")
-			return apis.Static(staticFS, false)(e)
-		})
 
 		jsvm.MustRegister(app, jsvm.Config{
 			HooksWatch:    true,
@@ -61,7 +54,6 @@ func main() {
 
 		return se.Next()
 	})
-
 
 	app.OnRecordUpdateExecute("bookmarks").BindFunc(func(e *core.RecordEvent) error {
 		app.Logger().Debug("RecordUpdate: bookmarks", "action", "update")
