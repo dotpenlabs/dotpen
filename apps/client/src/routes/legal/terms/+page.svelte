@@ -1,6 +1,5 @@
 <script lang="ts">
-	import SvelteMarkdown from 'svelte-markdown';
-	import terms from './terms.md?raw';
+	import terms from './terms.html?raw';
 </script>
 
 <svelte:head>
@@ -12,7 +11,7 @@
 		<p class="!text-3xl font-semibold">Terms of Service</p>
 		<div class="w-16 h-1 rounded-xl bg-black/25 my-3.5 mb-8"></div>
 		<div id="markdown" class="opacity-95 pb-24">
-			<SvelteMarkdown source={terms} />
+			{@html terms}
 		</div>
 	</div>
 </content>
